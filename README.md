@@ -12,4 +12,5 @@ in cases were the signal is lost and a firecrew member must be rescued.
 Our system is built to be easily installable and configuable and can be used in a variety of different situations.
 
 # Is it already functioning?
-Not yet. Since our work on the project just started there are several steps we need to take before we can build a working prototype. A feasibility study must be taken to determine the accuracy of our system. Also a distance calibration and threshold analysis have to be completed before we can build the full system prototype.
+Not yet. Since our work on the project just started there are several steps we need to take before we can build a working prototype. A feasibility study 
+must be taken to determine the accuracy of our system. Also a distance calibration and threshold analysis have to be completed before we can build the full system prototype.
