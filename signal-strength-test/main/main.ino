@@ -1,7 +1,13 @@
 #include <BLEDevice.h>
 
+struct LPS_DEVICE {
+  
+}
 
-const String TARGET_DEVICE_NAME = "Tab S9 FE von Nik";
+
+const String LPS_DEVICE_MANUFACTURER_PREFIX = "LPS"; // 'LP' are part of the company id while 'S' is the first byte in the data body
+
+//const String LPS_DEVICE_MANUFACTURER_PREFIX  = "7073"; // every LPS ready device must start with this two bytes in its manufacturers data
 
 const int SCAN_TIME = 5;
 
@@ -20,18 +26,22 @@ void setup() {
   for (int i = 0; i < results->getCount(); i++) {
     BLEAdvertisedDevice device = results->getDevice(i);
 
-    if (device.haveName() && device.getName() == TARGET_DEVICE_NAME) {
+    if (device.haveManufacturerData() && device.getManufacturerData().startsWith(LPS_DEVICE_MANUFACTURER_PREFIX)) {
       int rssi = device.getRSSI(); 
 
       Serial.println(device.toString().c_str());
-      Serial.println("Device: ");
-      Serial.println(device.getAddress().toString().c_str());
-      Serial.println("RSSi: ");
-      Serial.println(rssi);
+      Serial.println(device.getManufacturerData());
+      Serial.println(device.getRSSI());
+
+      LPS_DEVICE_MANUFACTURER_PREFIX.getBytes(unsigned char *buf, unsigned int bufsize)
     }
   }
   
   Serial.println("\nDone!");
+}
+
+String getDeviceDescription(BLEAdvertisedDevice *device) {
+
 }
 
 void loop() {
