@@ -2,14 +2,13 @@
 #define LPSSCANNER_H
 
 #include <stdint.h>
+#include <vector>
 #include "LPSDevice.h"
 
-const uint16_t _SCAN_TIME = 1;
+extern const uint16_t SCAN_TIME;
 
-void scan();
+void init(std::string name);
 
-int getLPSDeviceCount();
-
-LPSDEVICE *getDevices();
+std::vector<LPSDEVICE> scan();
 
 #endif

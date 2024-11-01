@@ -1,15 +1,53 @@
 #include "LPSScanner.h"
+#include <BLEDevice.h>
+#include <HardwareSerial.h>
 
-void scan()
+const uint16_t SCAN_TIME = 1;
+
+void init(std::string name)
 {
+    Serial.println("Initialising scanner...");
+
+    BLEDevice::init(name);
 }
 
-int getLPSDeviceCount()
+std::vector<LPSDEVICE> scan()
 {
-    return 0;
-}
+    Serial.println("Scanning BLE...");
 
-LPSDEVICE *getDevices()
-{
-    return nullptr;
+    BLEScan *scan = BLEDevice::getScan();
+    scan->setActiveScan(1);
+    BLEScanResults results = scan->start(SCAN_TIME);
+
+    std::vector<LPSDEVICE> devices = {};
+    devices.reserve(results.getCount());
+
+    for (int i = 0; i < results.getCount(); i++)
+    {
+        BLEAdvertisedDevice advertisedDevice = results.getDevice(i);
+
+        // skip all devices without manufacturer data
+        if (!advertisedDevice.haveManufacturerData())
+        {
+            continue;
+        }
+
+        std::string mData = advertisedDevice.getManufacturerData();
+
+        if (mData.rfind(LPS_DEVICE_MANUFACTURER_PREFIX, 0) == 0)
+        {
+            uint16_t id = ((mData.at(3) & 0xFF) << 8) | (mData.at(4) & 0xFF);
+            int8_t rssi = advertisedDevice.getRSSI();
+
+            // the mData is only a valid LPS device identification if it ends with a 0x23
+            if (mData.at(5) == 0x23)
+            {
+                devices.push_back({id, rssi});
+            }
+        }
+    }
+    scan->clearResults();
+
+    devices.shrink_to_fit();
+    return devices;
 }
