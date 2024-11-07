@@ -5,10 +5,12 @@
 #include <vector>
 #include "LPSDevice.h"
 
-extern const uint16_t SCAN_TIME;
-
-void init(std::string name);
-
-std::vector<LPSDEVICE> scan();
-
+class LPSSCANNER
+{
+public:
+    static const uint16_t SCAN_TIME;
+    static void init(std::string name);
+    static std::vector<LPSDEVICE> scan();
+    static void deinit();
+};
 #endif
