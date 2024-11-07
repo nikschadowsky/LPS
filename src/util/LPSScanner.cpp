@@ -2,16 +2,16 @@
 #include <BLEDevice.h>
 #include <HardwareSerial.h>
 
-const uint16_t SCAN_TIME = 1;
+const uint16_t LPSSCANNER::SCAN_TIME = 1;
 
-void init(std::string name)
+void LPSSCANNER::init(std::string name)
 {
     Serial.println("Initialising scanner...");
-
     BLEDevice::init(name);
 }
 
-std::vector<LPSDEVICE> scan()
+// the user is responsible to clean up the resulting std::vector
+std::vector<LPSDEVICE> LPSSCANNER::scan()
 {
     Serial.println("Scanning BLE...");
 
@@ -50,4 +50,9 @@ std::vector<LPSDEVICE> scan()
 
     devices.shrink_to_fit();
     return devices;
+}
+
+void LPSSCANNER::deinit()
+{
+    BLEDevice::deinit();
 }
