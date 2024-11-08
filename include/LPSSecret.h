@@ -3,11 +3,7 @@
 
 #include <string>
 
-class LPSSecret
-{
-public:
-    static const std::string LPS_SSID;
-    static const std::string LPS_PASSCODE;
-};
+extern const std::string LPS_SSID;
+extern const std::string LPS_PASSCODE;
 
 #endif
