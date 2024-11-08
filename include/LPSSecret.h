@@ -5,6 +5,7 @@
 
 class LPSSecret
 {
+public:
     static const std::string LPS_SSID;
     static const std::string LPS_PASSCODE;
 };
