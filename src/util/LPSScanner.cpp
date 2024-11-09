@@ -13,8 +13,6 @@ void LPSSCANNER::init(std::string name)
 // the user is responsible to clean up the resulting std::vector
 std::vector<LPSDEVICE> LPSSCANNER::scan()
 {
-    Serial.println("Scanning BLE...");
-
     BLEScan *scan = BLEDevice::getScan();
     scan->setActiveScan(1);
     BLEScanResults results = scan->start(SCAN_TIME);
