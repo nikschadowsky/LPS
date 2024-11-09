@@ -1,7 +1,9 @@
-#include <Arduino.h>
+// #include <Arduino.h>
+#include <HardwareSerial.h>
 #include <BLEDevice.h>
 #include "LPSDevice.h"
 #include "LPSScanner.h"
+#include "LPSAntennaSender.h"
 
 void setup()
 {
@@ -11,21 +13,10 @@ void setup()
   Serial.println("Starting");
 
   // initialize scanner
-  LPSSCANNER::init("");
-  std::vector<LPSDEVICE> devices = LPSSCANNER::scan();
-
-  for (LPSDEVICE device : devices)
-  {
-    Serial.println(getDeviceFormatted(device).c_str());
-  }
-
-  Serial.println("\nDone!");
-
-  devices.clear();
-
-  LPSSCANNER::deinit();
+  LPSANTENNASENDER::initServer();
 }
 
 void loop()
 {
+  LPSANTENNASENDER::handleRequests();
 }
