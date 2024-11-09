@@ -4,14 +4,18 @@
 
 std::string LPS_DEVICE_MANUFACTURER_PREFIX = "LPS"; // 'LP' are part of the company id while 'S' is the first byte in the data body
 
-uint8_t serializeDevice(LPSDEVICE device)
+std::array<int8_t, SERIALIZED_DEVICE_SIZE> serializeDevice(LPSDEVICE device)
 {
-    return 255;
+    return {
+        (int8_t) ((device.id >> 8) & 0xFF),
+        (int8_t) (device.id & 0xFF),
+        device.rssi
+    };
 }
 
-LPSDEVICE *deserializeDevice(uint8_t *buffer)
+std::vector<LPSDEVICE> deserializeDevices(uint8_t *buffer)
 {
-    return NULL;
+    return {};
 }
 
 std::string getDeviceFormatted(LPSDEVICE &device)
