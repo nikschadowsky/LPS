@@ -4,10 +4,23 @@
 # printing the resulting headers and body to the console.
 
 import requests;
+import sys;
 
 print('Request from: ')
-response = requests.get(input())
 
+http_method = sys.argv[1]
+http_url = sys.argv[2]
+
+response = None
+
+if http_method.upper() == 'GET':
+    response = requests.get(http_url)
+elif http_method.upper() == 'POST':
+    response = requests.post(http_url)
+else: 
+    raise Exception(f'Invalid HTTP method: {http_method}')
+
+print(f'HTTP-{http_method.upper()} on {http_url}')
 print(f'Status: {response.status_code}')
 print(f'Response header: {response.headers}')
 print(f'Response body: {response.content}')
