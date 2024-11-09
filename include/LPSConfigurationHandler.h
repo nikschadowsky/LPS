@@ -1,7 +1,8 @@
 #ifndef LPS_CONFIGURATION_LED_HANDLER_H
 #define LPS_CONFIGURATION_LED_HANDLER_H
 
-class LPSConfigurationLEDHandler {
+class LPSConfigurationHandler
+{
 public:
     static void init();
     static void toggleConfigMode();
