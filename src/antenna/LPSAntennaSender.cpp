@@ -43,7 +43,7 @@ void handle_Request()
         {
             LPSDEVICE device = devices.at(i);
             std::array<int8_t, SERIALIZED_DEVICE_SIZE> data = serializeDevice(device);
-            std::copy(data.begin(), data.end(), buffer + i);
+            std::copy(data.begin(), data.end(), buffer + i * SERIALIZED_DEVICE_SIZE);
         }
 
         // end on 0x00 00 00
