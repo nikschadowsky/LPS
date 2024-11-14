@@ -1,26 +1,24 @@
 #include "esp_wifi.h"
 #include <HTTPClient.h>
+#include "LPSSecret.h"
+#include <vector>
 
-const char *ssid = "LPS_Access_Point";
-const char *password = "LPS";
+const int8_t REQUEST_TIMEOUT_MILLIS = 1500;
 
 void setupWiFi()
 {
-    wifi_init_config_t config = WIFI_INIT_CONFIG_DEFAULT();
-    esp_err_t esp_wifi_init(const wifi_init_config_t &config);
     WiFi.mode(WIFI_AP);
     Serial.print("Setting up Access Point...");
-    WiFi.softAP(ssid, password);
+    WiFi.softAP(LPS_SSID.c_str(), LPS_PASSCODE.c_str());
 
-    IPAddress IP = WiFi.softAPIP();
     Serial.print("AP IP address: ");
-    Serial.println(IP);
+    Serial.println(WiFi.softAPIP());
 }
 
-void sendGETRequest(IPAddress deviceIP)
+void sendGETRequest(IPAddress antennaIP)
 {
     HTTPClient http;
-    String url = "http://" + deviceIP.toString() + ":80";
+    String url = "http://" + antennaIP.toString() + ":" + LPS_ANTENNA_PORT;
 
     Serial.print("Sending GET request to: ");
     Serial.println(url);
@@ -33,11 +31,13 @@ void sendGETRequest(IPAddress deviceIP)
     {
         Serial.println("Response received:");
         int len = http.getSize();
-        uint8_t *payload = (uint8_t *)malloc(len);
+
+        // create array on stack
+        int8_t payload[len];
+        // copy body to array
+        http.getStream().readBytes((char *)payload, len);
 
         // TODO use response
-
-        free(payload);
     }
     else
     {
@@ -64,32 +64,23 @@ void loop()
         wifi_sta_list_t stationList;
         esp_netif_sta_list_t netif_sta_list;
 
-        if (esp_wifi_ap_get_sta_list(&stationList) == ESP_OK)
+        esp_wifi_ap_get_sta_list(&stationList);
+        esp_netif_get_sta_list(&stationList, &netif_sta_list);
+
+        for (int i = 0; i < numClients; i++)
         {
-            if (esp_netif_get_sta_list(&stationList, &netif_sta_list) == ESP_OK)
-            {
-                for (int i = 0; i < numClients; i++)
-                {
 
-                    esp_ip4_addr_t ip4 = netif_sta_list.sta[i].ip;
-                    IPAddress clientIP(ip4.addr);
+            esp_ip4_addr_t ip4 = netif_sta_list.sta[i].ip;
+            IPAddress clientIP(ip4.addr);
 
-                    Serial.print("Device ");
-                    Serial.print(i + 1);
-                    Serial.print(" IP address: ");
-                    Serial.println(clientIP);
+            Serial.print("Device ");
+            Serial.print(i + 1);
+            Serial.print(" IP address: ");
+            Serial.println(clientIP);
 
-                    sendGETRequest(clientIP);
-                }
-            }
-            else
-            {
-                Serial.println("Failed to map station list to network interface station list.");
-            }
-        }
-        else
-        {
-            Serial.println("Failed to get station list.");
+            xTaskCreate(sendGETRequest, );
+
+            sendGETRequest(clientIP);
         }
     }
 
