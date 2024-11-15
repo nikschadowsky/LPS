@@ -15,7 +15,36 @@ std::array<int8_t, SERIALIZED_DEVICE_SIZE> serializeDevice(LPSDEVICE device)
 
 std::vector<LPSDEVICE> deserializeDevices(uint8_t *buffer)
 {
-    return {};
+    uint8_t arraySize = 0;
+    uint8_t nullCounter = 0;
+
+    uint8_t deviceChecksum = 0;
+    do
+    {
+        for (int i = 0; i < SERIALIZED_DEVICE_SIZE; i++)
+        {
+            deviceChecksum |= buffer[arraySize + i];
+        }
+        arraySize += 3;
+    } while (deviceChecksum);
+
+    // remove null bytes from array size
+    arraySize -= 3;
+
+    uint8_t vectorSize = arraySize % SERIALIZED_DEVICE_SIZE;
+
+    std::vector<LPSDEVICE> devices = {};
+    devices.reserve(vectorSize);
+
+    for (int i = 0; i < vectorSize; i++)
+    {
+        uint16_t id = (buffer[i] << 8) | buffer[i + 1];
+        int8_t rssi = buffer[i + 2];
+
+        devices.push_back({id, rssi});
+    }
+
+    return devices;
 }
 
 std::string getDeviceFormatted(LPSDEVICE &device)

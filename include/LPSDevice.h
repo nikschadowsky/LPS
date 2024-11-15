@@ -22,7 +22,7 @@ typedef struct
  */
 std::array<int8_t, SERIALIZED_DEVICE_SIZE> serializeDevice(LPSDEVICE device);
 
-LPSDEVICE deserializeDevice(uint8_t *buffer); // deserialized an LPSDEVICE according to the LPS protocol
+std::vector<LPSDEVICE> deserializeDevices(uint8_t *buffer); // deserialized an LPSDEVICE according to the LPS protocol
 
 std::string getDeviceFormatted(LPSDEVICE &device);
 
