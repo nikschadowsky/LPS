@@ -38,20 +38,18 @@ void handle_Request()
 
         // buffer size is one larger than the device count since the protocol defines a 0x00 00 00 ending.
         uint16_t size = (devices.size() + 1) * SERIALIZED_DEVICE_SIZE;
-        int8_t buffer[size];
-        for (int i = 0; i < devices.size(); i++)
-        {
-            LPSDEVICE device = devices.at(i);
-            std::array<int8_t, SERIALIZED_DEVICE_SIZE> data = serializeDevice(device);
-            std::copy(data.begin(), data.end(), buffer + i * SERIALIZED_DEVICE_SIZE);
-        }
+    
+        int8_t *serialized_data_buffer = new int8_t[size];
+        serializeDevices(devices.data(), serialized_data_buffer, devices.size());
 
         // end on 0x00 00 00
-        buffer[size - 3] = 0;
-        buffer[size - 2] = 0;
-        buffer[size - 1] = 0;
+        serialized_data_buffer[size - 3] = 0;
+        serialized_data_buffer[size - 2] = 0;
+        serialized_data_buffer[size - 1] = 0;
 
-        server.send_P(200, "application/octet-stream", (char *)buffer, size);
+        server.send_P(200, "application/octet-stream", (char *)serialized_data_buffer, size);
+
+        delete[] serialized_data_buffer;
     }
     else
     {
