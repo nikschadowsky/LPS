@@ -4,16 +4,19 @@
 
 std::string LPS_DEVICE_MANUFACTURER_PREFIX = "LPS"; // 'LP' are part of the company id while 'S' is the first byte in the data body
 
-std::array<int8_t, SERIALIZED_DEVICE_SIZE> serializeDevice(LPSDEVICE device)
+void serializeDevices(LPSDEVICE *devices_ptr, int8_t *target_buffer, uint8_t count)
 {
-    return {
-        (int8_t) ((device.id >> 8) & 0xFF),
-        (int8_t) (device.id & 0xFF),
-        device.rssi
-    };
+    for (int i = 0; i < count; i++)
+    {
+        LPSDEVICE device = devices_ptr[i];
+
+        target_buffer[0 + i] = (device.id >> 8) & 0xFF;
+        target_buffer[1 + i] = device.id & 0xFF;
+        target_buffer[2 + i] = device.rssi;
+    }
 }
 
-std::vector<LPSDEVICE> deserializeDevices(uint8_t *buffer)
+void deserializeDevices(uint8_t *buffer, std::vector<LPSDEVICE> *target)
 {
     uint8_t arraySize = 0;
     uint8_t nullCounter = 0;
@@ -33,18 +36,15 @@ std::vector<LPSDEVICE> deserializeDevices(uint8_t *buffer)
 
     uint8_t vectorSize = arraySize % SERIALIZED_DEVICE_SIZE;
 
-    std::vector<LPSDEVICE> devices = {};
-    devices.reserve(vectorSize);
+    target->reserve(vectorSize);
 
     for (int i = 0; i < vectorSize; i++)
     {
         uint16_t id = (buffer[i] << 8) | buffer[i + 1];
         int8_t rssi = buffer[i + 2];
 
-        devices.push_back({id, rssi});
+        target->push_back({id, rssi});
     }
-
-    return devices;
 }
 
 std::string getDeviceFormatted(LPSDEVICE &device)
