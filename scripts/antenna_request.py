@@ -23,4 +23,4 @@ else:
 print(f'HTTP-{http_method.upper()} on {http_url}')
 print(f'Status: {response.status_code}')
 print(f'Response header: {response.headers}')
-print(f'Response body: {response.content}')
+print(f'Response body: {"".join("%02x " % b for b in response.content)}')
