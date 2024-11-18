@@ -16,13 +16,13 @@ void LPSConfigurationHandler::init()
     digitalWrite(LED_PIN, 0);
 }
 
-void LPSConfigurationHandler::toggleConfigMode()
+void LPSConfigurationHandler::toggle_config_mode()
 {
     _configMode ^= 1;
     digitalWrite(LED_PIN, _configMode);
 }
 
-bool LPSConfigurationHandler::configMode()
+bool LPSConfigurationHandler::config_mode()
 {
     return _configMode;
 }

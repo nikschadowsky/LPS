@@ -9,8 +9,8 @@ class LPSANTENNASENDER
 {
 public:
     static const std::string LPS_SERVICE_DEVICE_NAME;
-    static void initServer();
-    static void handleRequests();
+    static void init_server();
+    static void handle_requests();
 };
 
 #endif

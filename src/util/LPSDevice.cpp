@@ -4,7 +4,7 @@
 
 std::string LPS_DEVICE_MANUFACTURER_PREFIX = "LPS"; // 'LP' are part of the company id while 'S' is the first byte in the data body
 
-void serializeDevices(LPSDEVICE *devices_ptr, int8_t *target_buffer, uint8_t count)
+void serialize_devices(LPSDEVICE *devices_ptr, int8_t *target_buffer, uint8_t count)
 {
     for (uint8_t i = 0; i < count; i++)
     {
@@ -19,7 +19,7 @@ void serializeDevices(LPSDEVICE *devices_ptr, int8_t *target_buffer, uint8_t cou
 }
 
 // todo rework to create byte array and expect a pointer to a pointer and a pointer to an int?
-void deserializeDevices(uint8_t *buffer, std::vector<LPSDEVICE> *target)
+void deserialize_devices(uint8_t *buffer, std::vector<LPSDEVICE> *target)
 {
     uint8_t arraySize = 0;
     uint8_t nullCounter = 0;
@@ -50,7 +50,7 @@ void deserializeDevices(uint8_t *buffer, std::vector<LPSDEVICE> *target)
     }
 }
 
-std::string getDeviceFormatted(LPSDEVICE &device)
+std::string get_device_formatted(LPSDEVICE &device)
 {
     std::string result = "LPS-Device: " + std::to_string(device.id) + ", rssi:" + std::to_string(device.rssi);
     return result;

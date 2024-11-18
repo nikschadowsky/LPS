@@ -18,7 +18,7 @@ const std::string ILLEGAL_ACTION_CONFIG_MODE_HTML = "<h1>Invalid Action when in 
 WebServer server(80);
 
 // handles an illegal action. an illegal action is an http request to anything other than /api/scan or /api/config.
-void handle_IllegalAction()
+void handle_illegal_action()
 {
     server.send(403, "text/html", ILLEGAL_ACTION_HTML.c_str());
 }
@@ -30,17 +30,17 @@ void handle_IllegalAction_ConfigMode()
 }
 
 // handle a request to /api/scan
-void handle_Request()
+void handle_request()
 {
-    if (!LPSConfigurationHandler::configMode())
+    if (!LPSConfigurationHandler::config_mode())
     {
         std::vector<LPSDEVICE> devices = LPSSCANNER::scan();
 
         // buffer size is one larger than the device count since the protocol defines a 0x00 00 00 ending.
         uint16_t size = (devices.size() + 1) * SERIALIZED_DEVICE_SIZE;
-    
+
         int8_t *serialized_data_buffer = new int8_t[size];
-        serializeDevices(devices.data(), serialized_data_buffer, devices.size());
+        serialize_devices(devices.data(), serialized_data_buffer, devices.size());
 
         // end on 0x00 00 00
         serialized_data_buffer[size - 3] = 0;
@@ -53,30 +53,30 @@ void handle_Request()
     }
     else
     {
-        handle_IllegalAction();
+        handle_illegal_action();
     }
 }
 
 // handles a POST request to /api/config. Toggles the config mode of this antenna.
-void handle_ConfigRequested()
+void handle_config_requested()
 {
     Serial.println("Requested toggle of config mode...");
-    LPSConfigurationHandler::toggleConfigMode();
+    LPSConfigurationHandler::toggle_config_mode();
 
     server.send(202, "text/html", SUCCESSFUL_CONFIG_TOGGLE_HTML.c_str());
 }
 
 // handles a GET request to /api/config. Returns a basic HTML view of the current status.
-void handle_GetConfigMode()
+void handle_get_config_mode()
 {
     std::string message = "<h1>Config mode is: ";
-    message.append(std::to_string(LPSConfigurationHandler::configMode()));
+    message.append(std::to_string(LPSConfigurationHandler::config_mode()));
     message.append("</h1>");
     server.send(202, "text/html", message.c_str());
 }
 
 // Configures the WiFi and starts the webserver on port 80.
-void LPSANTENNASENDER::initServer()
+void LPSANTENNASENDER::init_server()
 {
     LPSSCANNER::init("");
     LPSConfigurationHandler::init();
@@ -93,16 +93,16 @@ void LPSANTENNASENDER::initServer()
     Serial.print("IP-Address: ");
     Serial.println(WiFi.localIP());
 
-    server.on("/api/scan", HTTP_GET, handle_Request);
-    server.on("/api/config", HTTP_POST, handle_ConfigRequested);
-    server.on("/api/config", HTTP_GET, handle_GetConfigMode);
-    server.onNotFound(handle_IllegalAction);
+    server.on("/api/scan", HTTP_GET, handle_request);
+    server.on("/api/config", HTTP_POST, handle_config_requested);
+    server.on("/api/config", HTTP_GET, handle_get_config_mode);
+    server.onNotFound(handle_illegal_action);
 
     server.begin();
 }
 
 // Handles clients.
-void LPSANTENNASENDER::handleRequests()
+void LPSANTENNASENDER::handle_requests()
 {
     server.handleClient();
 }

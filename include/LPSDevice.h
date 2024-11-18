@@ -20,10 +20,10 @@ typedef struct
 /**
  * Serialized an LPSDEVICE according to the standard described in the documentation.
  */
-void serializeDevices(LPSDEVICE *devices_ptr, int8_t *target_buffer, uint8_t count);
+void serialize_devices(LPSDEVICE *devices_ptr, int8_t *target_buffer, uint8_t count);
 
-void deserializeDevices(uint8_t *buffer, std::vector<LPSDEVICE> *target); // deserialized an LPSDEVICE according to the LPS protocol
+void deserialize_devices(uint8_t *buffer, std::vector<LPSDEVICE> *target); // deserialized an LPSDEVICE according to the LPS protocol
 
-std::string getDeviceFormatted(LPSDEVICE &device);
+std::string get_device_formatted(LPSDEVICE &device);
 
 #endif

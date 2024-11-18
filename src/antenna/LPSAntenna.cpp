@@ -13,10 +13,10 @@ void setup()
   Serial.println("Starting");
 
   // initialize scanner
-  LPSANTENNASENDER::initServer();
+  LPSANTENNASENDER::init_server();
 }
 
 void loop()
 {
-  LPSANTENNASENDER::handleRequests();
+  LPSANTENNASENDER::handle_requests();
 }
