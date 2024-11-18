@@ -1,6 +1,6 @@
 ROW_WIDTH = 8
 
-file = open("./temp/binary_translation_matrix.txt", "x")
+file = open("./temp/binary_translation_matrix.txt", "w+")
 
 lines = []
 
@@ -14,11 +14,11 @@ for i in range(0, 256):
         f"{i:d}" # unsigned dec
         ])
     
-file.write(f'{"Hex".rjust(8)} | {"Binary".rjust(8)} | {"Dec".rjust(8)} | {"u-Dec".rjust(8)}')
-file.write('-' * 41)
+file.write(f'{"Hex".rjust(8)} | {"Binary".rjust(8)} | {"Dec".rjust(8)} | {"u-Dec".rjust(8)}\n')
+file.write('-' * 41 + '\n')
 
 
 for line in lines:
-    file.write(f'{line[0].rjust(8)} | {line[1].rjust(8)} | {line[2].rjust(8)} | {line[3].rjust(8)}')
+    file.write(f'{line[0].rjust(8)} | {line[1].rjust(8)} | {line[2].rjust(8)} | {line[3].rjust(8)}\n')
 
 file.close()
