@@ -61,7 +61,7 @@ void handle_http(const HttpSubTaskData *parameter_ptr)
 
     if (response_code != 200)
     {
-        Serial.printf("HTTP GET response of %s was unexpected! Status code was ", parameter_ptr->ip->IP.c_str(), response_code);
+        Serial.printf("HTTP GET response of %s was unexpected! Status code was %s", parameter_ptr->ip->IP.c_str(), response_code);
         client.end();
         return;
     }
