@@ -10,6 +10,10 @@ const uint32_t REQUEST_TIMEOUT_MILLIS = 1500;
 
 const int8_t TOTAL_NUMBER_OF_ANTENNAS = 4;
 
+IPAddress local_ip(192,168,0,1);
+IPAddress gateway(192,168,0,1);
+IPAddress subnet(255,255,255,0);
+
 struct HttpSubTaskData
 {
     LPSIP *ip;
@@ -22,6 +26,7 @@ void setupWiFi()
 {
     WiFi.mode(WIFI_AP);
     Serial.print("Setting up Access Point...");
+    WiFi.softAPConfig(local_ip, gateway, subnet);
     WiFi.softAP(LPS_SSID.c_str(), LPS_PASSCODE.c_str());
 }
 
