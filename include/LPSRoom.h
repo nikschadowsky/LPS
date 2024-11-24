@@ -2,19 +2,38 @@
 #define LPS_ROOM_H
 
 #include <string>
+#include <math.h>
 
-typedef struct {
-    std::string IP;
-} LPSIP;
+struct vec3
+{
+    float x;
+    float y;
+    std::string ip;
+};
 
+/**
+ *    B ----- C
+ *    |       |
+ *    |       |
+ *    |       |
+ *  Y |       |
+ *  ^ |       |
+ *  | A ----- D
+ *  0 -> X
+ */
 typedef struct
 {
-    LPSIP antennaIP_A;
-    LPSIP antennaIP_B;
-    LPSIP antennaIP_C;
-    LPSIP antennaIP_D;
-    float distance_AB;
-    float distance_AD;
+    vec3 A; // origin, always (0, 0)
+    vec3 B; // clockwise to origin
+    vec3 C; // opposite of origin
+    vec3 D; // counterclockwise to origin
+
 } LPSRoom;
+
+float ab_distance(const LPSRoom *room);
+
+float ac_distance(const LPSRoom *room);
+
+float ad_distance(const LPSRoom *room);
 
 #endif
