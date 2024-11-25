@@ -1,5 +1,6 @@
 .pio
 .vscode
 .idea
-src/util/LPSSecret.cpp
+src/main/esp32/util/LPSSecret.cpp
 **/temp
+/target/
