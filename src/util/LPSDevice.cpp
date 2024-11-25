@@ -27,6 +27,7 @@ void deserialize_devices(uint8_t *buffer, std::vector<LPSDEVICE> *target)
     uint8_t deviceChecksum = 0;
     do
     {
+        deviceChecksum = 0;
         for (uint16_t i = 0; i < SERIALIZED_DEVICE_SIZE; i++)
         {
             deviceChecksum |= buffer[arraySize + i];
@@ -36,8 +37,10 @@ void deserialize_devices(uint8_t *buffer, std::vector<LPSDEVICE> *target)
 
     // remove null bytes from array size
     arraySize -= 3;
+    uint8_t vectorSize = arraySize / SERIALIZED_DEVICE_SIZE;
 
-    uint8_t vectorSize = arraySize % SERIALIZED_DEVICE_SIZE;
+    Serial.print("Devices found: ");
+    Serial.println(vectorSize);
 
     target->reserve(vectorSize);
 
@@ -46,7 +49,10 @@ void deserialize_devices(uint8_t *buffer, std::vector<LPSDEVICE> *target)
         uint16_t id = (buffer[i] << 8) | buffer[i + 1];
         int8_t rssi = buffer[i + 2];
 
-        target->push_back({id, rssi});
+        LPSDEVICE device = {id, rssi};
+
+        target->push_back(device);
+        Serial.println(get_device_formatted(device).c_str());
     }
 }
 
