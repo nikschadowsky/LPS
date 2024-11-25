@@ -5,18 +5,19 @@
 #include <vector>
 #include "LPSDevice.h"
 #include "LPSPositionEstimator.h"
+#include "LPSRoom.h"
 
 const uint32_t REQUEST_TIMEOUT_MILLIS = 1500;
 
 const int8_t TOTAL_NUMBER_OF_ANTENNAS = 4;
 
-IPAddress local_ip(192,168,0,1);
-IPAddress gateway(192,168,0,1);
-IPAddress subnet(255,255,255,0);
+IPAddress local_ip(192, 168, 0, 1);
+IPAddress gateway(192, 168, 0, 1);
+IPAddress subnet(255, 255, 255, 0);
 
 struct HttpSubTaskData
 {
-    LPSIP *ip;
+    Antenna *antenna;
     std::vector<LPSDEVICE> *device_buffer;
 };
 
@@ -55,7 +56,7 @@ void setupLPSRoom()
 void handle_http(const HttpSubTaskData *parameter_ptr)
 {
     std::string url = "http://";
-    url.append(parameter_ptr->ip->IP);
+    url.append(parameter_ptr->antenna->ip);
     url.append(":");
     url.append(std::to_string(LPS_ANTENNA_PORT));
 
@@ -66,7 +67,7 @@ void handle_http(const HttpSubTaskData *parameter_ptr)
 
     if (response_code != 200)
     {
-        Serial.printf("HTTP GET response of %s was unexpected! Status code was %s", parameter_ptr->ip->IP.c_str(), response_code);
+        Serial.printf("HTTP GET response of %s was unexpected! Status code was %s", parameter_ptr->antenna->ip.c_str(), response_code);
         client.end();
         return;
     }
@@ -105,12 +106,12 @@ void setup()
     setupWiFi();
 }
 
-const HttpSubTaskData *task_parameter_create(LPSIP *ip)
+const HttpSubTaskData *task_parameter_create(Antenna *antenna)
 {
     std::vector<LPSDEVICE> *antenna_devices = new std::vector<LPSDEVICE>();
 
     HttpSubTaskData *parameter = new HttpSubTaskData;
-    parameter->ip = ip;
+    parameter->antenna = antenna;
     parameter->device_buffer = antenna_devices;
 
     return parameter;
@@ -127,10 +128,10 @@ const uint8_t NUM_SUB_TASKS = 4;
 TaskHandle_t http_task_handles[NUM_SUB_TASKS];
 
 const HttpSubTaskData *sub_task_data_ptr[NUM_SUB_TASKS] = {
-    task_parameter_create(&room.antennaIP_A),
-    task_parameter_create(&room.antennaIP_B),
-    task_parameter_create(&room.antennaIP_C),
-    task_parameter_create(&room.antennaIP_D)};
+    task_parameter_create(&room.A),
+    task_parameter_create(&room.B),
+    task_parameter_create(&room.C),
+    task_parameter_create(&room.D)};
 
 const std::string task_names[NUM_SUB_TASKS] = {"antenna_A_GET", "antenna_B_GET", "antenna_C_GET", "antenna_D_GET"};
 
@@ -138,12 +139,13 @@ void loop()
 {
     uint32_t timestamp = millis();
 
-    LPSIP ip = {"192.168.178.39"};
-    const HttpSubTaskData *subtask_data = task_parameter_create(&ip);
+    Antenna antenna = Antenna{Point{0.0f, 0.0f}, "192.168.178.39"};
+    const HttpSubTaskData *subtask_data = task_parameter_create(&antenna);
 
     handle_http(subtask_data);
 
-    for(auto device : *subtask_data->device_buffer) {
+    for (auto device : *subtask_data->device_buffer)
+    {
         Serial.println(estimate_distance(&device));
     }
 
