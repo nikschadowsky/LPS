@@ -4,12 +4,17 @@
 #include <string>
 #include <math.h>
 
-struct vec3
+typedef struct
 {
     float x;
     float y;
+} Point;
+
+typedef struct
+{
+    Point position;
     std::string ip;
-};
+} Antenna;
 
 /**
  *    B ----- C
@@ -23,10 +28,10 @@ struct vec3
  */
 typedef struct
 {
-    vec3 A; // origin, always (0, 0)
-    vec3 B; // clockwise to origin
-    vec3 C; // opposite of origin
-    vec3 D; // counterclockwise to origin
+    Antenna A; // origin, always (0, 0)
+    Antenna B; // clockwise to origin
+    Antenna C; // opposite of origin
+    Antenna D; // counterclockwise to origin
 
 } LPSRoom;
 
