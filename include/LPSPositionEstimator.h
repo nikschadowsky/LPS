@@ -6,10 +6,11 @@
 
 typedef struct
 {
-    float x;
-    float y;
+    Point position;
     float uncertainty;
 } LPSPosition;
+
+bool lps_position_is_valid(LPSPosition *position);
 
 float estimate_distance(const LPSDEVICE *device_ptr);
 
