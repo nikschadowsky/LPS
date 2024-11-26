@@ -1,4 +1,4 @@
-package lpsvisualizer.controller;
+package lpsvisualizer.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
