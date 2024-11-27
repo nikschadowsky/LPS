@@ -24,13 +24,13 @@ class PositionWebSocketHandlerTest {
     private WebSocketSession session1;
     private WebSocketSession session2;
 
-    // unit under test
-    private PositionWebSocketHandler handler;
-
     @Captor
     private ArgumentCaptor<WebSocketMessage<String>> captor;
 
     private AutoCloseable closeable;
+
+    // unit under test
+    private PositionWebSocketHandler handler;
 
     @BeforeEach
     void setup() throws Exception {
@@ -39,7 +39,7 @@ class PositionWebSocketHandlerTest {
         session1 = mock(WebSocketSession.class);
         when(session1.isOpen()).thenReturn(true);
         session2 = mock(WebSocketSession.class);
-        when(session2.isOpen()).thenReturn(true);
+        when(session2.isOpen()).thenReturn(false);
 
         handler = new PositionWebSocketHandler();
 
@@ -53,18 +53,21 @@ class PositionWebSocketHandlerTest {
     }
 
     @Test
-    void sendMessageToClients() throws IOException {
-        handler.sendMessageToClients(List.of());
-        handler.sendMessageToClients(List.of(new DisplayablePosition(1, 30f, 40f)));
-        handler.sendMessageToClients(List.of(
+    void sendPositionsToClients() throws IOException {
+        handler.sendPositionsToClients(List.of());
+        handler.sendPositionsToClients(List.of(new DisplayablePosition(1, 30f, 40f)));
+        handler.sendPositionsToClients(List.of(
                 new DisplayablePosition(10, 30f, 40f),
                 new DisplayablePosition(1, 3f, 20f)
         ));
 
         verify(session1, times(3)).sendMessage(captor.capture());
         assertThat(captor.getAllValues().get(0).getPayload()).isEqualTo("[]");
-        assertThat(captor.getAllValues().get(1).getPayload()).isEqualTo("[]");
-        assertThat(captor.getAllValues().get(2).getPayload()).isEqualTo("[]");
+        assertThat(captor.getAllValues().get(1).getPayload()).isEqualTo("[{\"id\":1,\"x\":30.0,\"y\":40.0}]");
+        assertThat(captor.getAllValues().get(2).getPayload()).isEqualTo(
+                "[{\"id\":10,\"x\":30.0,\"y\":40.0},{\"id\":1,\"x\":3.0,\"y\":20.0}]");
+
+        verify(session2, never()).sendMessage(any(WebSocketMessage.class));
     }
 
 

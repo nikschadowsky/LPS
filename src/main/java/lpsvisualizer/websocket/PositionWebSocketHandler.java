@@ -31,7 +31,7 @@ public class PositionWebSocketHandler extends TextWebSocketHandler {
         sessions.remove(session);
     }
 
-    public void sendMessageToClients(List<DisplayablePosition> positions) {
+    public void sendPositionsToClients(List<DisplayablePosition> positions) {
         for (WebSocketSession session : sessions) {
             if (session.isOpen()) {
                 try {
