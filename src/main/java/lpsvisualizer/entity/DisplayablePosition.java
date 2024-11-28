@@ -6,6 +6,11 @@ package lpsvisualizer.entity;
  */
 public class DisplayablePosition {
 
+    /**
+     * 2 Bytes ID (uint16) + 2 * 4 Byte position data (float)
+     */
+    public static int SIZE = 10;
+
     private int id;
 
     private float x;
@@ -15,6 +20,22 @@ public class DisplayablePosition {
         this.id = id;
         this.x = x;
         this.y = y;
+    }
+
+    public static DisplayablePosition fromBinaryData(byte[] data) {
+        if(data.length != SIZE) {
+            throw new IllegalArgumentException("Passed array is not a valid binary container. Sizes do not match!");
+        }
+
+        int id = 0;
+        id |= data[0];
+        id <<= 8;
+        id |= data[1];
+
+        float x = Float.intBitsToFloat(data[2] | data[3] | data[4] | data[5]);
+        float y = Float.intBitsToFloat(data[6] | data[7] | data[8] | data[9]);
+
+        return new DisplayablePosition(id, x, y);
     }
 
     public int getId() {

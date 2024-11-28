@@ -10,7 +10,10 @@ import org.springframework.scheduling.annotation.Async;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.BufferOverflowException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -29,52 +32,64 @@ public class SerialCommunicator {
 
     private int counter = 0;
 
-    private ExecutorService portListener = Executors.newSingleThreadExecutor();
+    private final ExecutorService portListener = Executors.newSingleThreadExecutor();
 
-    private AtomicBoolean signal = new AtomicBoolean(false);
+    private final AtomicBoolean signal = new AtomicBoolean(false);
 
-    CopyOnWriteArrayList<DisplayablePosition> positions = new CopyOnWriteArrayList<>();
-
-
-    private SerialCommunicator(PositionWebSocketHandler webSocketService) {
+    public SerialCommunicator(PositionWebSocketHandler webSocketService) {
         this.webSocketService = webSocketService;
-        // start communicator thread
-        System.err.println("Started");
     }
 
-    public void start() {
+    public void start() throws ExecutionException, InterruptedException {
         SerialPort com = SerialPort.getCommPort(COM_PORT);
         com.setBaudRate(115200);
         com.setComPortTimeouts(SerialPort.TIMEOUT_READ_SEMI_BLOCKING, 0, 0);
+        signal.set(true);
 
         if (com.openPort()) {
-            portListener.submit(() -> {
+            portListener.execute(() -> {
                 int head = 0;
                 int mark = -1;
-                byte[] buf = new byte[1024];
+                byte[] buffer = new byte[2048];
                 boolean inBlock = false;
 
+                byte[] positionBuffer = new byte[DisplayablePosition.SIZE];
+                int positionBufferHead = 0;
+
+                List<DisplayablePosition> positions = new ArrayList<>();
 
                 try (InputStream inputStream = com.getInputStream()) {
                     while (signal.get()) {
-                        if (head > buf.length) {
+                        if (head > buffer.length) {
                             throw new BufferOverflowException();
                         }
 
-                        buf[head] = intToByte(inputStream.read());
-                        if (inBlock) {
-                            if (ByteChecker.checkSequence(SUFFIX, buf, head)) {
-                                // todo send WS message
-                                webSocketService.sendPositionsToClients(positions);
-                                inBlock = false;
-                            }
-                        } else {
-                            if (ByteChecker.checkSequence(PREFIX, buf, head)) {
-                                inBlock = true;
-                            }
-                        }
+                        if (inputStream.available() > 0) {
+                            buffer[head] = intToByte(inputStream.read());
+                            if (inBlock) {
+                                if (positionBufferHead == 0 && ByteChecker.checkSequence(SUFFIX, buffer, head)) {
+                                    webSocketService.sendPositionsToClients(positions);
+                                    positions.clear();
 
-                        head++;
+                                    inBlock = false;
+                                    head = 0;
+                                } else {
+                                    // we are not at the end of a block. try parsing...
+                                    positionBuffer[positionBufferHead++] = buffer[head];
+
+                                    if (positionBufferHead == DisplayablePosition.SIZE) {
+                                        positions.add(DisplayablePosition.fromBinaryData(positionBuffer));
+                                        positionBufferHead = 0;
+                                    }
+                                }
+                            } else {
+                                if (ByteChecker.checkSequence(PREFIX, buffer, head)) {
+                                    inBlock = true;
+                                }
+                            }
+
+                            head++;
+                        }
                     }
 
                 } catch (IOException e) {
@@ -82,12 +97,15 @@ public class SerialCommunicator {
                 }
             });
         }
-        signal.set(true);
     }
 
     public int incCounter() {
 
         return counter++;
+    }
+
+    public void stop() {
+        signal.set(false);
     }
 
     @Async
