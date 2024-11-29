@@ -33,7 +33,7 @@ class SerialCommunicatorTest {
     private SerialCommunicator serialCommunicator;
 
     @Captor
-    ArgumentCaptor<List<DisplayablePosition>> positionCaptor;
+    private ArgumentCaptor<List<DisplayablePosition>> positionCaptor;
 
     private AutoCloseable closeable;
 
