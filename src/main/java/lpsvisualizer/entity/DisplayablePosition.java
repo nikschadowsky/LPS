@@ -1,6 +1,8 @@
 package lpsvisualizer.entity;
 
 
+import java.util.Objects;
+
 /**
  * @since 26.11.2024
  */
@@ -23,7 +25,7 @@ public class DisplayablePosition {
     }
 
     public static DisplayablePosition fromBinaryData(byte[] data) {
-        if(data.length != SIZE) {
+        if (data.length != SIZE) {
             throw new IllegalArgumentException("Passed array is not a valid binary container. Sizes do not match!");
         }
 
@@ -32,8 +34,18 @@ public class DisplayablePosition {
         id <<= 8;
         id |= data[1];
 
-        float x = Float.intBitsToFloat(data[2] | data[3] | data[4] | data[5]);
-        float y = Float.intBitsToFloat(data[6] | data[7] | data[8] | data[9]);
+        float x = Float.intBitsToFloat(
+                (data[2] & 0xFF) << 24
+                        | (data[3] & 0xFF) << 16
+                        | (data[4] & 0xFF) << 8
+                        | (data[5] & 0xFF)
+        );
+        float y = Float.intBitsToFloat(
+                (data[6] & 0xFF) << 24
+                        | (data[7] & 0xFF) << 16
+                        | (data[8] & 0xFF) << 8
+                        | (data[9] & 0xFF)
+        );
 
         return new DisplayablePosition(id, x, y);
     }
@@ -60,5 +72,22 @@ public class DisplayablePosition {
 
     public void setY(float y) {
         this.y = y;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof DisplayablePosition that)) return false;
+        return id == that.id && Float.compare(x, that.x) == 0 && Float.compare(y, that.y) == 0;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, x, y);
+    }
+
+    @Override
+    public String toString() {
+        return "DisplayablePosition{id=%d, x=%s, y=%s}".formatted(id, x, y);
     }
 }
