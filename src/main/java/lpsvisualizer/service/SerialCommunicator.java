@@ -12,8 +12,6 @@ import java.io.InputStream;
 import java.nio.BufferOverflowException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -40,7 +38,7 @@ public class SerialCommunicator {
         this.webSocketService = webSocketService;
     }
 
-    public void start() throws ExecutionException, InterruptedException {
+    public void start() {
         SerialPort com = SerialPort.getCommPort(COM_PORT);
         com.setBaudRate(115200);
         com.setComPortTimeouts(SerialPort.TIMEOUT_READ_SEMI_BLOCKING, 0, 0);
@@ -67,12 +65,19 @@ public class SerialCommunicator {
                         if (inputStream.available() > 0) {
                             buffer[head] = intToByte(inputStream.read());
                             if (inBlock) {
-                                if (positionBufferHead == 0 && ByteChecker.checkSequence(SUFFIX, buffer, head)) {
-                                    webSocketService.sendPositionsToClients(positions);
+                                if (positionBufferHead == SUFFIX.length - 1 && ByteChecker.checkSequence(
+                                        SUFFIX,
+                                        buffer,
+                                        head
+                                )) {
+                                    // pos buffer head should be one less than suffix's length
+                                    // because of the other bytes read before successfully processing the suffix
+                                    webSocketService.sendPositionsToClients(new ArrayList<>(positions));
                                     positions.clear();
 
                                     inBlock = false;
                                     head = 0;
+                                    positionBufferHead = 0;
                                 } else {
                                     // we are not at the end of a block. try parsing...
                                     positionBuffer[positionBufferHead++] = buffer[head];
