@@ -43,5 +43,9 @@ class ByteCheckerTest {
                 buffer,
                 -1
         )).isInstanceOf(IllegalArgumentException.class);
+
+        byte[] prefixAtStart = {1,2,3};
+        assertThat(ByteChecker.checkSequence(prefixAtStart, buffer, 1)).isFalse();
+        assertThat(ByteChecker.checkSequence(prefixAtStart, buffer, 2)).isTrue();
     }
 }
