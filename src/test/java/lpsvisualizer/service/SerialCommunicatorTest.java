@@ -206,12 +206,12 @@ class SerialCommunicatorTest {
         }
 
         @Override
-        public int read() throws IOException {
+        public int read() {
             return iterator.next();
         }
 
         @Override
-        public int available() throws IOException {
+        public int available() {
             return iterator.hasNext() ? 1 : 0;
         }
     }
