@@ -19,7 +19,7 @@ public class ByteChecker {
         }
 
         // if sequence is larger than the offset to allow for enough bytes before offset
-        if (offset - 1 < sequence.length) {
+        if (offset < sequence.length - 1) {
             return false;
         }
 
