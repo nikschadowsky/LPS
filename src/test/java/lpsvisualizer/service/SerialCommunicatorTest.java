@@ -9,6 +9,7 @@ import org.mockito.*;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Iterator;
 import java.util.List;
 
@@ -27,6 +28,13 @@ class SerialCommunicatorTest {
 
     private MockInputStream in;
 
+    @Mock
+    private OutputStream out;
+
+    private static InputStream standardIn;
+    private static MockInputStream mockStandardIn;
+
+
     private static MockedStatic<SerialPort> mockStatic;
 
     // unit under test
@@ -37,8 +45,14 @@ class SerialCommunicatorTest {
 
     private AutoCloseable closeable;
 
+    private ByteArrayBuilder byteArrayBuilder;
+
     @BeforeAll
     static void setup() {
+        standardIn = System.in;
+        mockStandardIn = new MockInputStream();
+        System.setIn(mockStandardIn);
+
         mockedPort = mock(SerialPort.class);
 
         mockStatic = Mockito.mockStatic(SerialPort.class);
@@ -51,8 +65,11 @@ class SerialCommunicatorTest {
         in = new MockInputStream();
         when(mockedPort.openPort()).thenReturn(true);
         when(mockedPort.getInputStream()).thenReturn(in);
+        when(mockedPort.getOutputStream()).thenReturn(out);
 
         serialCommunicator = new SerialCommunicator(mockedWSHandler);
+
+        byteArrayBuilder = new ByteArrayBuilder();
     }
 
     @AfterEach
@@ -63,12 +80,13 @@ class SerialCommunicatorTest {
     @AfterAll
     static void tearDown() {
         mockStatic.close();
+        System.setIn(standardIn);
     }
 
 
     @Test
-    void startWithEmptyStream() {
-        in.setData(List.of());
+    void startPositionDataWithEmptyStream() {
+        in.setData(byteArrayBuilder.build());
         serialCommunicator.start();
         await().atMost(Durations.ONE_SECOND).until(() -> in.available() == 0);
         serialCommunicator.stop();
@@ -76,8 +94,8 @@ class SerialCommunicatorTest {
     }
 
     @Test
-    void startWithoutPrefixOrSuffix() {
-        in.setData(List.of(0x1, 0x2, 0x5, 0x6, 0x8, 0x9, 0x0, 0xFF, 0xFF));
+    void startPositionDataWithoutPrefixOrSuffix() {
+        in.setData(byteArrayBuilder.s("Anything but the sequence").build());
         serialCommunicator.start();
         await().atMost(Durations.ONE_SECOND).until(() -> in.available() == 0);
         serialCommunicator.stop();
@@ -85,44 +103,49 @@ class SerialCommunicatorTest {
     }
 
     @Test
-    void startWithEmptyBlock() {
-        in.setData(List.of(0x1, 0x2, 0x5, 0x4C, 0x50, 0x53, 0xFF, 0xFF, 0xFF));
+    void startPositionDataWithEmptyBlock() {
+        in.setData(byteArrayBuilder.s("some data")
+                                   .ba(SerialCommunicator.ESP_POS_DATA_START_PREFIX)
+                                   .ba(SerialCommunicator.ESP_POS_DATA_END_SUFFIX)
+                                   .s("some more data")
+                                   .build());
         serialCommunicator.start();
-        await().atMost(Durations.ONE_SECOND).until(() -> in.available() == 0);
+        await().atMost(Durations.ONE_MINUTE).until(() -> in.available() == 0);
         serialCommunicator.stop();
         verify(mockedWSHandler, times(1)).sendPositionsToClients(positionCaptor.capture());
         assertThat(positionCaptor.getValue()).isEmpty();
     }
 
     @Test
-    void startWithBlockContainingOnePosition() {
-        in.setData(List.of(
-                0x1, 0x2, 0x5, 0x4C,
-                0x50, 0x53, 0, 0x4, // 2nd part of prefix + id
-                0x40, 0x80, 0x0, 0x0, // x coordinate
-                0x40, 0xF0, 0x0, 0x0, // y coordinate
-                0xFF, 0xFF, 0xFF, 0xFE // end marker + additional data
-        ));
+    void startPositionDataWithBlockContainingOnePosition() {
+        in.setData(byteArrayBuilder.s("some data")
+                                   .ba(SerialCommunicator.ESP_POS_DATA_START_PREFIX)
+                                   .i(0x0).i(0x4) // id
+                                   .i(0x40).i(0x80).i(0x0).i(0x0) // x = 4.0f
+                                   .i(0x40).i(0xF0).i(0x0).i(0x0) // y = 7.5f
+                                   .ba(SerialCommunicator.ESP_POS_DATA_END_SUFFIX)
+                                   .s("some more data")
+                                   .build());
         serialCommunicator.start();
-        await().atMost(Durations.ONE_MINUTE).until(() -> in.available() == 0);
+        await().atMost(Durations.ONE_SECOND).until(() -> in.available() == 0);
         verify(mockedWSHandler, times(1)).sendPositionsToClients(positionCaptor.capture());
         serialCommunicator.stop();
         assertThat(positionCaptor.getValue()).hasSize(1).contains(new DisplayablePosition(4, 4.0f, 7.5f));
     }
 
     @Test
-    void startWithBlockContainingTwoPositions() {
-        in.setData(List.of(
-                0x1, 0x2, 0x5, // random data
-                0x4C, 0x50, 0x53, // prefix
-                0, 0x4, // 1st id
-                0x40, 0x80, 0x0, 0x0, // 1st x coordinate (4.0f)
-                0x40, 0xF0, 0x0, 0x0, // 1st y coordinate (7.5f)
-                0x0, 0x5, // 2nd id
-                0x7F, 0x80, 0x0, 0x0, // 2nd x coordinate (+inf)
-                0x7F, 0x80, 0x0, 0x0, // 2nd y coordinate (+inf)
-                0xFF, 0xFF, 0xFF, 0xFE // end marker + additional data
-        ));
+    void startPositionDataWithBlockContainingTwoPositions() {
+        in.setData(byteArrayBuilder.s("some data")
+                                   .ba(SerialCommunicator.ESP_POS_DATA_START_PREFIX)
+                                   .i(0x0).i(0x4) // id1
+                                   .i(0x40).i(0x80).i(0x0).i(0x0) // x1 = 4.0f
+                                   .i(0x40).i(0xF0).i(0x0).i(0x0) // y1 = 7.5f
+                                   .i(0x0).i(0x5) // id2
+                                   .i(0x7F).i(0x80).i(0x0).i(0x0) // x2 = +inf
+                                   .i(0x7F).i(0x80).i(0x0).i(0x0) // y2 = +inf
+                                   .ba(SerialCommunicator.ESP_POS_DATA_END_SUFFIX)
+                                   .s("some more data")
+                                   .build());
         serialCommunicator.start();
         await().atMost(Durations.ONE_MINUTE).until(() -> in.available() == 0);
         verify(mockedWSHandler, times(1)).sendPositionsToClients(positionCaptor.capture());
@@ -139,34 +162,44 @@ class SerialCommunicatorTest {
     }
 
     @Test
-    void startWithTwoBlocks() {
-        in.setData(List.of(0x4C, 0x50, 0x53, //1st prefix
-                           0, 0x4, // 1st id
-                           0x40, 0x80, 0x0, 0x0, // 1st x coordinate (4.0f)
-                           0x40, 0xF0, 0x0, 0x0, // 1st y coordinate (7.5f)
-                           0xFF, 0xFF, 0xFF, // 1st suffix
-                           0x4C, 0x50, 0x53, // 2nd prefix
-                           0x0, 0x5, // 2nd id
-                           0x7F, 0x80, 0x0, 0x0, // 2nd x coordinate (+inf)
-                           0x7F, 0x80, 0x0, 0x0, // 2nd y coordinate (+inf)
-                           0xFF, 0xFF, 0xFF // 2nd suffix
-        ));
+    void startPositionDataWithTwoBlocks() {
+        in.setData(byteArrayBuilder.s("some data")
+                                   .ba(SerialCommunicator.ESP_POS_DATA_START_PREFIX)
+                                   .i(0x0).i(0x4) // id1
+                                   .i(0x40).i(0x80).i(0x0).i(0x0) // x1 = 4.0f
+                                   .i(0x40).i(0xF0).i(0x0).i(0x0) // y1 = 7.5f
+                                   .ba(SerialCommunicator.ESP_POS_DATA_END_SUFFIX)
+                                   .s("some data in the middle")
+                                   .ba(SerialCommunicator.ESP_POS_DATA_START_PREFIX)
+                                   .i(0x0).i(0x5) // id2
+                                   .i(0x7F).i(0x80).i(0x0).i(0x0) // x2 = +inf
+                                   .i(0x7F).i(0x80).i(0x0).i(0x0) // y2 = +inf
+                                   .ba(SerialCommunicator.ESP_POS_DATA_END_SUFFIX)
+                                   .s("some more data")
+                                   .build());
         serialCommunicator.start();
         await().atMost(Durations.ONE_MINUTE).until(() -> in.available() == 0);
         serialCommunicator.stop();
         verify(mockedWSHandler, times(2)).sendPositionsToClients(positionCaptor.capture());
         assertThat(positionCaptor.getAllValues().get(0)).hasSize(1).contains(new DisplayablePosition(4, 4.0f, 7.5f));
         assertThat(positionCaptor.getAllValues().get(1)).hasSize(1)
-                                                        .contains(new DisplayablePosition(5,
-                                                                                          Float.POSITIVE_INFINITY,
-                                                                                          Float.POSITIVE_INFINITY
+                                                        .contains(new DisplayablePosition(
+                                                                5,
+                                                                Float.POSITIVE_INFINITY,
+                                                                Float.POSITIVE_INFINITY
                                                         ));
 
     }
 
     @Test
-    void startWithBlockContainingIncompleteData() {
-        in.setData(List.of(1, 2, 5, 0x4C, 0x50, 0x53, 0, 0x4, 0x40, 0x80, 0x0, 0x0, 0xFF, 0xFF, 0xFF));
+    void startPositionDataWithBlockContainingIncompleteData() {
+        in.setData(byteArrayBuilder.s("some data")
+                                   .ba(SerialCommunicator.ESP_POS_DATA_START_PREFIX)
+                                   .i(0x0).i(0x4) // id
+                                   .i(0x40).i(0x80).i(0x0).i(0x0) // x = 4.0f
+                                   .ba(SerialCommunicator.ESP_POS_DATA_END_SUFFIX)
+                                   .s("some more data")
+                                   .build());
         serialCommunicator.start();
         await().atMost(Durations.ONE_SECOND).until(() -> in.available() == 0);
         serialCommunicator.stop();
@@ -174,20 +207,23 @@ class SerialCommunicatorTest {
     }
 
     @Test
-    void startWithBlockContainingSuffixInData() {
-        in.setData(List.of(
-                0x1, 0x2, 0x5, // random data
-                0x4C, 0x50, 0x53, // prefix
-                0, 0x4, // 1st id
-                0xFF, 0xFF, 0xFF, 0xFF, // 1st x coordinate (4.0f)
-                0xFF, 0xFF, 0xFF, 0xFF, // 1st y coordinate (7.5f)
-                0xFF, 0xFF, 0xFF, 0xFE // end marker + additional data
-        ));
+    void startPositionDataWithBlockContainingSuffixInData() {
+        in.setData(byteArrayBuilder.s("some data")
+                                   .ba(SerialCommunicator.ESP_POS_DATA_START_PREFIX)
+                                   .i(0x0).i(0x4) // id1
+                                   .i(0xFF).i(0xFF).i(0xFF).i(0xFF) // x1
+                                   .i(0xFF).i(0xFF).i(0xFF).i(0xFF) // y1
+                                   .i(0x0).i(0x5) // id2
+                                   .i(0x00) // start x2
+                                   .ba(SerialCommunicator.ESP_POS_DATA_END_SUFFIX) // overlaps with x2, y2
+                                   .ba(SerialCommunicator.ESP_POS_DATA_END_SUFFIX)
+                                   .s("some more data")
+                                   .build());
         serialCommunicator.start();
-        await().atMost(Durations.ONE_MINUTE).until(() -> in.available() == 0);
+        await().atMost(Durations.ONE_SECOND).until(() -> in.available() == 0);
         verify(mockedWSHandler, times(1)).sendPositionsToClients(positionCaptor.capture());
         serialCommunicator.stop();
-        assertThat(positionCaptor.getValue()).hasSize(1)
+        assertThat(positionCaptor.getValue()).hasSize(2)
                                              .contains(
                                                      new DisplayablePosition(
                                                              4,
@@ -195,6 +231,30 @@ class SerialCommunicatorTest {
                                                              Float.intBitsToFloat(-1)
                                                      )
                                              );
+    }
+
+    @Test
+    void startConfigStart() {
+        in.setData(byteArrayBuilder.s("some data")
+                                   .ba(SerialCommunicator.ESP_CONFIG_START_PREFIX)
+                                   .s("more data")
+                                   .build());
+        serialCommunicator.start();
+        await().atMost(Durations.ONE_SECOND).until(() -> in.available() == 0);
+        serialCommunicator.stop();
+    }
+
+    @Test
+    void startConfiguration() throws IOException {
+        mockStandardIn.setData(byteArrayBuilder.b((byte) 'A').build());
+        in.setData(byteArrayBuilder.s("some data")
+                                   .ba(SerialCommunicator.ESP_CONFIG_REQ_PREFIX)
+                                   .s("more data")
+                                   .build());
+        serialCommunicator.start();
+        await().atMost(Durations.ONE_SECOND).until(() -> in.available() == 0);
+        serialCommunicator.stop();
+        verify(out, times(1)).write(eq((int) 'A'));
     }
 
     private static class MockInputStream extends InputStream {

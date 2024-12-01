@@ -5,13 +5,15 @@ import com.fazecast.jSerialComm.SerialPort;
 import lpsvisualizer.entity.DisplayablePosition;
 import lpsvisualizer.util.ByteChecker;
 import lpsvisualizer.websocket.PositionWebSocketHandler;
-import org.springframework.scheduling.annotation.Async;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.BufferOverflowException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -23,8 +25,19 @@ public class SerialCommunicator {
 
     public static final String COM_PORT = "COM3";
 
-    private static final byte[] PREFIX = {'L', 'P', 'S'};
-    private static final byte[] SUFFIX = {(byte) 0xFF, (byte) 0xFF, (byte) 0xFF};
+    public static final byte[] ESP_CONFIG_START_PREFIX = "ESP_CONFIG_START".getBytes(StandardCharsets.UTF_8);
+    public static final byte[] ESP_CONFIG_REQ_PREFIX = "ESP_CONFIG_REQ".getBytes(StandardCharsets.UTF_8);
+    public static final byte[] ESP_POS_DATA_START_PREFIX = "ESP_POS_DATA_START".getBytes(StandardCharsets.UTF_8);
+    /*
+     * Has a maximum length requirement of DisplayablePosition.SIZE
+     */
+    public static final byte[] ESP_POS_DATA_END_SUFFIX = "POS_END".getBytes(StandardCharsets.UTF_8);
+
+    private final Map<byte[], EspSerialRequestHandler> ESP_HANDLERS = Map.of(
+            ESP_CONFIG_START_PREFIX, this::handleConfigStart,
+            ESP_CONFIG_REQ_PREFIX, this::handleConfiguration,
+            ESP_POS_DATA_START_PREFIX, this::handlePositionDataBlock
+    );
 
     private final PositionWebSocketHandler webSocketService;
 
@@ -47,59 +60,32 @@ public class SerialCommunicator {
         if (com.openPort()) {
             portListener.execute(() -> {
                 int head = 0;
-                int mark = -1;
                 byte[] buffer = new byte[2048];
-                boolean inBlock = false;
 
-                byte[] positionBuffer = new byte[DisplayablePosition.SIZE];
-                int positionBufferHead = 0;
+                try (InputStream in = com.getInputStream(); OutputStream out = com.getOutputStream()) {
 
-                List<DisplayablePosition> positions = new ArrayList<>();
-
-                try (InputStream inputStream = com.getInputStream()) {
                     while (signal.get()) {
-                        if (head > buffer.length) {
-                            throw new BufferOverflowException();
+                        if (in.available() <= 0) {
+                            continue;
                         }
 
-                        if (inputStream.available() > 0) {
-                            buffer[head] = intToByte(inputStream.read());
-                            if (inBlock) {
-                                if (positionBufferHead == SUFFIX.length - 1 && ByteChecker.checkSequence(
-                                        SUFFIX,
-                                        buffer,
-                                        head
-                                )) {
-                                    // pos buffer head should be one less than suffix's length
-                                    // because of the other bytes read before successfully processing the suffix
-                                    webSocketService.sendPositionsToClients(new ArrayList<>(positions));
-                                    positions.clear();
+                        checkBufferOverflow(buffer, head);
+                        buffer[head] = intToByte(in.read());
 
-                                    inBlock = false;
-                                    head = 0;
-                                    positionBufferHead = 0;
-                                } else {
-                                    // we are not at the end of a block. try parsing...
-                                    positionBuffer[positionBufferHead++] = buffer[head];
-
-                                    if (positionBufferHead == DisplayablePosition.SIZE) {
-                                        positions.add(DisplayablePosition.fromBinaryData(positionBuffer));
-                                        positionBufferHead = 0;
-                                    }
-                                }
-                            } else {
-                                if (ByteChecker.checkSequence(PREFIX, buffer, head)) {
-                                    inBlock = true;
-                                }
+                        for (Map.Entry<byte[], EspSerialRequestHandler> handler : ESP_HANDLERS.entrySet()) {
+                            if (ByteChecker.checkSequence(handler.getKey(), buffer, head)) {
+                                handler.getValue().handle(buffer, in, out);
+                                break;
                             }
-
-                            head++;
                         }
+
+                        head++;
                     }
 
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+
             });
         }
     }
@@ -109,18 +95,97 @@ public class SerialCommunicator {
         return counter++;
     }
 
+    /**
+     * Terminates the
+     */
     public void stop() {
         signal.set(false);
     }
 
-    @Async
-    public void serialRead() {
-
-    }
-
-    private byte intToByte(int i) {
+    private static byte intToByte(int i) {
         return (byte) (i & 0xFF);
     }
 
+    private void handleConfigStart(byte[] buffer, InputStream in, OutputStream out) throws IOException {
+        System.out.println("The LPS controller requested to configure.");
+        System.out.println(
+                """
+                        Configuring room setup...
+                        This is the schematic of the room. You are now guided to associate each corner with the antenna placed there.
+                          B --- C
+                          |     |
+                          |     |
+                          |     |
+                        ↑ A --- D
+                        0,0 →""");
+    }
 
+    private void handleConfiguration(byte[] buffer, InputStream in, OutputStream out) throws IOException {
+        System.out.println("An antenna is lighting up. Which corner of the room is this antenna representing?");
+        System.out.println("Type A - D to specify:");
+
+        int next;
+        while (true) {
+            if (System.in.available() > 0) {
+                next = System.in.read();
+                if (next > 64 && next < 70) {
+                    out.write(next);
+                    return;
+                }
+                System.out.println("Type A - D to specify:");
+            }
+        }
+    }
+
+    private void handlePositionDataBlock(byte[] buffer, InputStream in, OutputStream out) throws IOException {
+        int head = 0;
+
+        byte[] positionBuffer = new byte[DisplayablePosition.SIZE];
+        int positionBufferHead = 0;
+
+        List<DisplayablePosition> positions = new ArrayList<>();
+
+        while (signal.get()) {
+            checkBufferOverflow(buffer, head);
+
+            if (in.available() > 0) {
+                buffer[head] = intToByte(in.read());
+                if (positionBufferHead == ESP_POS_DATA_END_SUFFIX.length - 1 && ByteChecker.checkSequence(
+                        ESP_POS_DATA_END_SUFFIX,
+                        buffer,
+                        head
+                )) {
+                    // pos buffer head should be one less than suffix's length
+                    // because of the other bytes read before successfully processing the suffix
+                    webSocketService.sendPositionsToClients(new ArrayList<>(positions));
+                    positions.clear();
+
+                    return;
+                } else {
+                    // we are not at the end of a block. try parsing...
+                    positionBuffer[positionBufferHead++] = buffer[head];
+
+                    if (positionBufferHead == DisplayablePosition.SIZE) {
+                        positions.add(DisplayablePosition.fromBinaryData(positionBuffer));
+                        positionBufferHead = 0;
+                    }
+                }
+
+                head++;
+            }
+        }
+    }
+
+    @FunctionalInterface
+    private interface EspSerialRequestHandler {
+
+        void handle(byte[] buffer, InputStream in, OutputStream out) throws IOException;
+
+    }
+
+    private static void checkBufferOverflow(byte[] buffer, int head) {
+        if (head >= buffer.length) {
+            throw new BufferOverflowException();
+        }
+    }
 }
