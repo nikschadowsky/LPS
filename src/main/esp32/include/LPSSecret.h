@@ -16,6 +16,6 @@ extern const std::string LPS_PASSCODE;
 /**
  * Defines the port on which all antennas listen for requests.
  */
-extern const int8_t LPS_ANTENNA_PORT;
+extern const uint16_t LPS_ANTENNA_PORT;
 
 #endif
