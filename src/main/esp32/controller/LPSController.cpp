@@ -48,7 +48,7 @@ void setupLPSRoom()
     } while (netif_sta_list.num < TOTAL_NUMBER_OF_ANTENNAS);
 
     // all antennas connected
-    for (int i = 0; i < netif_sta_list.num; i++)
+    for (int i = 0; i < TOTAL_NUMBER_OF_ANTENNAS; i++)
     {
     }
 }
@@ -59,6 +59,7 @@ void handle_http(const HttpSubTaskData *parameter_ptr)
     url.append(parameter_ptr->antenna->ip);
     url.append(":");
     url.append(std::to_string(LPS_ANTENNA_PORT));
+    url.append("/api/scan");
 
     HTTPClient client;
     client.begin(url.c_str());
@@ -67,7 +68,6 @@ void handle_http(const HttpSubTaskData *parameter_ptr)
 
     if (response_code != 200)
     {
-        Serial.printf("HTTP GET response of %s was unexpected! Status code was %s", parameter_ptr->antenna->ip.c_str(), response_code);
         client.end();
         return;
     }
