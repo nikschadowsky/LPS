@@ -14,6 +14,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Scanner;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -28,15 +29,18 @@ public class SerialCommunicator {
     public static final byte[] ESP_CONFIG_START_PREFIX = "ESP_CONFIG_START".getBytes(StandardCharsets.UTF_8);
     public static final byte[] ESP_CONFIG_REQ_PREFIX = "ESP_CONFIG_REQ".getBytes(StandardCharsets.UTF_8);
     public static final byte[] ESP_POS_DATA_START_PREFIX = "ESP_POS_DATA_START".getBytes(StandardCharsets.UTF_8);
+    public static final byte[] ESP_CONFIG_DIST1_PREFIX = "ESP_CONFIG_DIST1".getBytes(StandardCharsets.UTF_8);
+    public static final byte[] ESP_CONFIG_DIST2_PREFIX = "ESP_CONFIG_DIST2".getBytes(StandardCharsets.UTF_8);
     /*
      * Has a maximum length requirement of DisplayablePosition.SIZE
      */
-    public static final byte[] ESP_POS_DATA_END_SUFFIX = "POS_END".getBytes(StandardCharsets.UTF_8);
+    public static final byte[] ESP_POS_DATA_END_SUFFIX = "POS_DATA_END".getBytes(StandardCharsets.UTF_8);
 
     private final Map<byte[], EspSerialRequestHandler> ESP_HANDLERS = Map.of(
             ESP_CONFIG_START_PREFIX, this::handleConfigStart,
             ESP_CONFIG_REQ_PREFIX, this::handleConfiguration,
-            ESP_POS_DATA_START_PREFIX, this::handlePositionDataBlock
+            ESP_POS_DATA_START_PREFIX, this::handlePositionDataBlock,
+            ESP_CONFIG_DIST1_PREFIX, this::handle
     );
 
     private final PositionWebSocketHandler webSocketService;
@@ -172,6 +176,25 @@ public class SerialCommunicator {
                 }
 
                 head++;
+            }
+        }
+    }
+
+    private void handleDistance(byte[] buffer, InputStream in, OutputStream out, int mode) throws IOException {
+        Scanner scanner = new Scanner(in);
+        if(mode == 0) {
+            System.out.println("Please enter the distance in metres from corner A to corner B:");
+
+            scanner.();
+            while (true) {
+                if (System.in.available() > 0) {
+                    next = System.in.read();
+                    if (next > 64 && next < 70) {
+                        out.write(next);
+                        return;
+                    }
+                    System.out.println("Type A - D to specify:");
+                }
             }
         }
     }
