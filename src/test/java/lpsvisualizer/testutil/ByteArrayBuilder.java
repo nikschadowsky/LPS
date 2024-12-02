@@ -1,4 +1,4 @@
-package lpsvisualizer.service;
+package lpsvisualizer.testutil;
 
 
 import java.nio.charset.StandardCharsets;
