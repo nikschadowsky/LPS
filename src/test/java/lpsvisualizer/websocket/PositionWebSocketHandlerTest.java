@@ -67,7 +67,7 @@ class PositionWebSocketHandlerTest {
                          .get(1)
                          .getPayload()).isEqualTo("[{\"id\":1,\"x\":30.0,\"y\":40.0,\"uncertainty\":1.0}]");
         assertThat(captor.getAllValues().get(2).getPayload()).isEqualTo(
-                "[{\"id\":10,\"x\":30.0,\"y\":40.0},{\"id\":1,\"x\":3.0,\"y\":20.0,\"uncertainty\":1.0}]");
+                "[{\"id\":10,\"x\":30.0,\"y\":40.0,\"uncertainty\":1.0},{\"id\":1,\"x\":3.0,\"y\":20.0,\"uncertainty\":1.0}]");
 
         verify(session2, never()).sendMessage(any(WebSocketMessage.class));
     }
