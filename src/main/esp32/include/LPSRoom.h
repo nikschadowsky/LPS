@@ -4,6 +4,8 @@
 #include <string>
 #include <math.h>
 
+const uint8_t TOTAL_NUMBER_OF_ANTENNAS = 4;
+
 typedef struct
 {
     float x;
@@ -28,11 +30,13 @@ typedef struct
  */
 typedef struct
 {
-    Antenna A; // origin, always (0, 0)
-    Antenna B; // clockwise to origin
-    Antenna C; // opposite of origin
-    Antenna D; // counterclockwise to origin
-
+    /**
+     * [0] origin, always (0,0)
+     * [1] clockwise to origin
+     * [2] opposite of origin
+     * [3] counterclockwise to origin
+     */
+    Antenna corner[TOTAL_NUMBER_OF_ANTENNAS];
 } LPSRoom;
 
 float ab_distance(const LPSRoom *room);
