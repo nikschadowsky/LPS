@@ -9,19 +9,22 @@ import java.util.Objects;
 public class DisplayablePosition {
 
     /**
-     * 2 Bytes ID (uint16) + 2 * 4 Byte position data (float)
+     * 2 Bytes ID (uint16) + 3 * 4 Byte position data (float)
      */
-    public static int SIZE = 10;
+    public static int SIZE = 14;
 
     private int id;
 
     private float x;
     private float y;
 
-    public DisplayablePosition(int id, float x, float y) {
+    private float uncertainty;
+
+    public DisplayablePosition(int id, float x, float y, float uncertainty) {
         this.id = id;
         this.x = x;
         this.y = y;
+        this.uncertainty = uncertainty;
     }
 
     public static DisplayablePosition fromBinaryData(byte[] data) {
@@ -47,7 +50,14 @@ public class DisplayablePosition {
                         | (data[9] & 0xFF)
         );
 
-        return new DisplayablePosition(id, x, y);
+        float uncertainty = Float.intBitsToFloat(
+                (data[10] & 0xFF) << 24
+                        | (data[11] & 0xFF) << 16
+                        | (data[12] & 0xFF) << 8
+                        | (data[13] & 0xFF)
+        );
+
+        return new DisplayablePosition(id, x, y, uncertainty);
     }
 
     public int getId() {
@@ -74,11 +84,22 @@ public class DisplayablePosition {
         this.y = y;
     }
 
+    public float getUncertainty() {
+        return uncertainty;
+    }
+
+    public void setUncertainty(float uncertainty) {
+        this.uncertainty = uncertainty;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof DisplayablePosition that)) return false;
-        return id == that.id && Float.compare(x, that.x) == 0 && Float.compare(y, that.y) == 0;
+        return id == that.id
+                       && Float.compare(x, that.x) == 0
+                       && Float.compare(y, that.y) == 0
+                       && Float.compare(uncertainty, that.uncertainty) == 0;
     }
 
     @Override
