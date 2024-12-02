@@ -9,8 +9,6 @@
 
 const uint32_t REQUEST_TIMEOUT_MILLIS = 1500;
 
-const int8_t TOTAL_NUMBER_OF_ANTENNAS = 4;
-
 IPAddress local_ip(192, 168, 0, 1);
 IPAddress gateway(192, 168, 0, 1);
 IPAddress subnet(255, 255, 255, 0);
@@ -47,9 +45,17 @@ void setupLPSRoom()
         vTaskDelay(500 / portTICK_PERIOD_MS);
     } while (netif_sta_list.num < TOTAL_NUMBER_OF_ANTENNAS);
 
+    Serial.write("ESP_CONFIG_START");
+
+    Serial.write("");
     // all antennas connected
     for (int i = 0; i < TOTAL_NUMBER_OF_ANTENNAS; i++)
     {
+        Serial.write("ESP_CONFIG_REQ");
+        while (Serial.available() == 0);
+        uint8_t response = Serial.read();
+
+        room.corner[i] = Antenna{};
     }
 }
 
@@ -117,21 +123,15 @@ const HttpSubTaskData *task_parameter_create(Antenna *antenna)
     return parameter;
 }
 
-void task_parameter_destroy(const HttpSubTaskData *task_parameter)
-{
-    delete task_parameter->device_buffer;
-    delete task_parameter;
-}
-
 const uint8_t NUM_SUB_TASKS = 4;
 
 TaskHandle_t http_task_handles[NUM_SUB_TASKS];
 
 const HttpSubTaskData *sub_task_data_ptr[NUM_SUB_TASKS] = {
-    task_parameter_create(&room.A),
-    task_parameter_create(&room.B),
-    task_parameter_create(&room.C),
-    task_parameter_create(&room.D)};
+    task_parameter_create(&room.corner[0]),
+    task_parameter_create(&room.corner[1]),
+    task_parameter_create(&room.corner[2]),
+    task_parameter_create(&room.corner[3])};
 
 const std::string task_names[NUM_SUB_TASKS] = {"antenna_A_GET", "antenna_B_GET", "antenna_C_GET", "antenna_D_GET"};
 
@@ -148,8 +148,6 @@ void loop()
     {
         Serial.println(estimate_distance(&device));
     }
-
-    task_parameter_destroy(subtask_data);
 
     /*
         // create tasks
