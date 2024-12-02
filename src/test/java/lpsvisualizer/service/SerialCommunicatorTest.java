@@ -2,6 +2,7 @@ package lpsvisualizer.service;
 
 import com.fazecast.jSerialComm.SerialPort;
 import lpsvisualizer.entity.DisplayablePosition;
+import lpsvisualizer.testutil.ByteArrayBuilder;
 import lpsvisualizer.websocket.PositionWebSocketHandler;
 import org.awaitility.Durations;
 import org.junit.jupiter.api.*;
@@ -123,6 +124,7 @@ class SerialCommunicatorTest {
                                    .i(0x0).i(0x4) // id
                                    .i(0x40).i(0x80).i(0x0).i(0x0) // x = 4.0f
                                    .i(0x40).i(0xF0).i(0x0).i(0x0) // y = 7.5f
+                                   .i(0x3F).i(0x80).i(0x0).i(0x0) // uncertainty = 1.0f
                                    .ba(SerialCommunicator.ESP_POS_DATA_END_SUFFIX)
                                    .s("some more data")
                                    .build());
@@ -130,7 +132,7 @@ class SerialCommunicatorTest {
         await().atMost(Durations.ONE_SECOND).until(() -> in.available() == 0);
         verify(mockedWSHandler, times(1)).sendPositionsToClients(positionCaptor.capture());
         serialCommunicator.stop();
-        assertThat(positionCaptor.getValue()).hasSize(1).contains(new DisplayablePosition(4, 4.0f, 7.5f));
+        assertThat(positionCaptor.getValue()).hasSize(1).contains(new DisplayablePosition(4, 4.0f, 7.5f, 1.0f));
     }
 
     @Test
@@ -140,9 +142,11 @@ class SerialCommunicatorTest {
                                    .i(0x0).i(0x4) // id1
                                    .i(0x40).i(0x80).i(0x0).i(0x0) // x1 = 4.0f
                                    .i(0x40).i(0xF0).i(0x0).i(0x0) // y1 = 7.5f
+                                   .i(0x3F).i(0x80).i(0x0).i(0x0) // uncertainty = 1.0f
                                    .i(0x0).i(0x5) // id2
                                    .i(0x7F).i(0x80).i(0x0).i(0x0) // x2 = +inf
                                    .i(0x7F).i(0x80).i(0x0).i(0x0) // y2 = +inf
+                                   .i(0x3F).i(0x80).i(0x0).i(0x0) // uncertainty = 1.0f
                                    .ba(SerialCommunicator.ESP_POS_DATA_END_SUFFIX)
                                    .s("some more data")
                                    .build());
@@ -152,11 +156,12 @@ class SerialCommunicatorTest {
         serialCommunicator.stop();
         assertThat(positionCaptor.getValue()).hasSize(2)
                                              .contains(
-                                                     new DisplayablePosition(4, 4.0f, 7.5f),
+                                                     new DisplayablePosition(4, 4.0f, 7.5f, 1.0f),
                                                      new DisplayablePosition(
                                                              5,
                                                              Float.POSITIVE_INFINITY,
-                                                             Float.POSITIVE_INFINITY
+                                                             Float.POSITIVE_INFINITY,
+                                                             1.0f
                                                      )
                                              );
     }
@@ -168,12 +173,14 @@ class SerialCommunicatorTest {
                                    .i(0x0).i(0x4) // id1
                                    .i(0x40).i(0x80).i(0x0).i(0x0) // x1 = 4.0f
                                    .i(0x40).i(0xF0).i(0x0).i(0x0) // y1 = 7.5f
+                                   .i(0x3F).i(0x80).i(0x0).i(0x0) // uncertainty = 1.0f
                                    .ba(SerialCommunicator.ESP_POS_DATA_END_SUFFIX)
                                    .s("some data in the middle")
                                    .ba(SerialCommunicator.ESP_POS_DATA_START_PREFIX)
                                    .i(0x0).i(0x5) // id2
                                    .i(0x7F).i(0x80).i(0x0).i(0x0) // x2 = +inf
                                    .i(0x7F).i(0x80).i(0x0).i(0x0) // y2 = +inf
+                                   .i(0x3F).i(0x80).i(0x0).i(0x0) // uncertainty = 1.0f
                                    .ba(SerialCommunicator.ESP_POS_DATA_END_SUFFIX)
                                    .s("some more data")
                                    .build());
@@ -181,12 +188,13 @@ class SerialCommunicatorTest {
         await().atMost(Durations.ONE_MINUTE).until(() -> in.available() == 0);
         serialCommunicator.stop();
         verify(mockedWSHandler, times(2)).sendPositionsToClients(positionCaptor.capture());
-        assertThat(positionCaptor.getAllValues().get(0)).hasSize(1).contains(new DisplayablePosition(4, 4.0f, 7.5f));
+        assertThat(positionCaptor.getAllValues().get(0)).hasSize(1).contains(new DisplayablePosition(4, 4.0f, 7.5f, 1.0f));
         assertThat(positionCaptor.getAllValues().get(1)).hasSize(1)
                                                         .contains(new DisplayablePosition(
                                                                 5,
                                                                 Float.POSITIVE_INFINITY,
-                                                                Float.POSITIVE_INFINITY
+                                                                Float.POSITIVE_INFINITY,
+                                                                1.0f
                                                         ));
 
     }
@@ -197,6 +205,7 @@ class SerialCommunicatorTest {
                                    .ba(SerialCommunicator.ESP_POS_DATA_START_PREFIX)
                                    .i(0x0).i(0x4) // id
                                    .i(0x40).i(0x80).i(0x0).i(0x0) // x = 4.0f
+                                   .i(0x40).i(0xF0).i(0x0).i(0x0) // y = 7.5f
                                    .ba(SerialCommunicator.ESP_POS_DATA_END_SUFFIX)
                                    .s("some more data")
                                    .build());
@@ -213,8 +222,10 @@ class SerialCommunicatorTest {
                                    .i(0x0).i(0x4) // id1
                                    .i(0xFF).i(0xFF).i(0xFF).i(0xFF) // x1
                                    .i(0xFF).i(0xFF).i(0xFF).i(0xFF) // y1
+                                   .i(0x3F).i(0x80).i(0x0).i(0x0) // uncertainty = 1.0f
                                    .i(0x0).i(0x5) // id2
-                                   .i(0x00) // start x2
+                                   .i(0x40).i(0x80).i(0x0).i(0x0) // x = 4.0f
+                                   .i(0x00)
                                    .ba(SerialCommunicator.ESP_POS_DATA_END_SUFFIX) // overlaps with x2, y2
                                    .ba(SerialCommunicator.ESP_POS_DATA_END_SUFFIX)
                                    .s("some more data")
@@ -228,7 +239,8 @@ class SerialCommunicatorTest {
                                                      new DisplayablePosition(
                                                              4,
                                                              Float.intBitsToFloat(-1),
-                                                             Float.intBitsToFloat(-1)
+                                                             Float.intBitsToFloat(-1),
+                                                             1.0f
                                                      )
                                              );
     }

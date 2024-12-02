@@ -55,17 +55,19 @@ class PositionWebSocketHandlerTest {
     @Test
     void sendPositionsToClients() throws IOException {
         handler.sendPositionsToClients(List.of());
-        handler.sendPositionsToClients(List.of(new DisplayablePosition(1, 30f, 40f)));
+        handler.sendPositionsToClients(List.of(new DisplayablePosition(1, 30f, 40f, 1f)));
         handler.sendPositionsToClients(List.of(
-                new DisplayablePosition(10, 30f, 40f),
-                new DisplayablePosition(1, 3f, 20f)
+                new DisplayablePosition(10, 30f, 40f, 1f),
+                new DisplayablePosition(1, 3f, 20f, 1f)
         ));
 
         verify(session1, times(3)).sendMessage(captor.capture());
         assertThat(captor.getAllValues().get(0).getPayload()).isEqualTo("[]");
-        assertThat(captor.getAllValues().get(1).getPayload()).isEqualTo("[{\"id\":1,\"x\":30.0,\"y\":40.0}]");
+        assertThat(captor.getAllValues()
+                         .get(1)
+                         .getPayload()).isEqualTo("[{\"id\":1,\"x\":30.0,\"y\":40.0,\"uncertainty\":1.0}]");
         assertThat(captor.getAllValues().get(2).getPayload()).isEqualTo(
-                "[{\"id\":10,\"x\":30.0,\"y\":40.0},{\"id\":1,\"x\":3.0,\"y\":20.0}]");
+                "[{\"id\":10,\"x\":30.0,\"y\":40.0},{\"id\":1,\"x\":3.0,\"y\":20.0,\"uncertainty\":1.0}]");
 
         verify(session2, never()).sendMessage(any(WebSocketMessage.class));
     }
