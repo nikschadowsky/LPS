@@ -103,9 +103,9 @@ LPSPosition estimate_position(
     // #1 ABC
     if (measurementA_ptr && measurementB_ptr && measurementC_ptr)
     {
-        antenna_buf[0] = room_ptr->A;
-        antenna_buf[1] = room_ptr->B;
-        antenna_buf[2] = room_ptr->C;
+        antenna_buf[0] = room_ptr->corner[0];
+        antenna_buf[1] = room_ptr->corner[1];
+        antenna_buf[2] = room_ptr->corner[2];
 
         distance_buf[0] = distances[0];
         distance_buf[1] = distances[1];
@@ -118,9 +118,9 @@ LPSPosition estimate_position(
     // #2 BCD
     if (measurementB_ptr && measurementC_ptr && measurementD_ptr)
     {
-        antenna_buf[0] = room_ptr->B;
-        antenna_buf[1] = room_ptr->C;
-        antenna_buf[2] = room_ptr->D;
+        antenna_buf[0] = room_ptr->corner[1];
+        antenna_buf[1] = room_ptr->corner[2];
+        antenna_buf[2] = room_ptr->corner[3];
 
         distance_buf[0] = distances[1];
         distance_buf[1] = distances[2];
@@ -133,9 +133,9 @@ LPSPosition estimate_position(
     // #3 CDA
     if (measurementC_ptr && measurementD_ptr && measurementA_ptr)
     {
-        antenna_buf[0] = room_ptr->C;
-        antenna_buf[1] = room_ptr->D;
-        antenna_buf[2] = room_ptr->A;
+        antenna_buf[0] = room_ptr->corner[2];
+        antenna_buf[1] = room_ptr->corner[3];
+        antenna_buf[2] = room_ptr->corner[0];
 
         distance_buf[0] = distances[2];
         distance_buf[1] = distances[3];
@@ -148,9 +148,9 @@ LPSPosition estimate_position(
     // #4 DAB
     if (measurementD_ptr && measurementA_ptr && measurementB_ptr)
     {
-        antenna_buf[0] = room_ptr->D;
-        antenna_buf[1] = room_ptr->A;
-        antenna_buf[2] = room_ptr->B;
+        antenna_buf[0] = room_ptr->corner[3];
+        antenna_buf[1] = room_ptr->corner[0];
+        antenna_buf[2] = room_ptr->corner[1];
 
         distance_buf[0] = distances[3];
         distance_buf[1] = distances[0];

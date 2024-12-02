@@ -2,15 +2,15 @@
 
 float ab_distance(const LPSRoom *room)
 {
-    return room->B.position.y;
+    return room->corner[1].position.y;
 }
 
 float ac_distance(const LPSRoom *room)
 {
-    return hypotf(room->C.position.x, room->C.position.y);
+    return hypotf(room->corner[1].position.x, room->corner[2].position.y);
 }
 
 float ad_distance(const LPSRoom *room)
 {
-    return room->D.position.x;
+    return room->corner[3].position.x;
 }
