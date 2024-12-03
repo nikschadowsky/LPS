@@ -29,6 +29,21 @@ void setupWiFi()
     WiFi.softAP(LPS_SSID.c_str(), LPS_PASSCODE.c_str());
 }
 
+void handle_http_toggle_config_mode(std::string ip)
+{
+    std::string url = "http://";
+    url.append(ip);
+    url.append(":");
+    url.append(std::to_string(LPS_ANTENNA_PORT));
+    url.append("/api/config");
+
+    HTTPClient client;
+
+    client.begin(url.c_str());
+    client.POST("");
+    client.end();
+}
+
 void setupLPSRoom()
 {
     Serial.println("Waiting for all antennas to connect...");
@@ -47,19 +62,64 @@ void setupLPSRoom()
 
     Serial.write("ESP_CONFIG_START");
 
-    Serial.write("");
     // all antennas connected
     for (int i = 0; i < TOTAL_NUMBER_OF_ANTENNAS; i++)
     {
+        uint32_t addr = netif_sta_list.sta[i].ip.addr;
+
+        uint8_t octet1 = (addr >> 24) & 0xFF;
+        uint8_t octet2 = (addr >> 16) & 0xFF;
+        uint8_t octet3 = (addr >> 8) & 0xFF;
+        uint8_t octet4 = addr & 0xFF;
+
+        std::string ip = std::to_string(octet1) + "." + std::to_string(octet2) + "." + std::to_string(octet3) + "." + std::to_string(octet4);
+
+        handle_http_toggle_config_mode(ip);
+
+        // expecting A - D from visualizer
         Serial.write("ESP_CONFIG_REQ");
-        while (Serial.available() == 0);
+        while (Serial.available() < 1)
+        {
+        };
+
         uint8_t response = Serial.read();
 
-        room.corner[i] = Antenna{};
+        // subtracting 65 since the requested data is ASCII A - D
+        // position will be set later
+        // for now we just associate the ip with one of the corners
+        room.corner[response - 65] = Antenna{Point{0, 0}, ip};
+
+        handle_http_toggle_config_mode(ip);
     }
+
+    // now setting the distances...
+    handle_http_toggle_config_mode(room.corner[0].ip);
+    handle_http_toggle_config_mode(room.corner[1].ip);
+
+    uint8_t buffer[4];
+    Serial.write("ESP_CONFIG_DIST1");
+    while (Serial.available() < 4)
+    {
+    };
+    Serial.readBytes(buffer, 4);
+
+    // expecting float
+    float dist_ab = *(float *)buffer;
+
+    Serial.write("ESP_CONFIG_DIST2");
+    while (Serial.available() < 4)
+    {
+    };
+    Serial.readBytes(buffer, 4);
+
+    float dist_ad = *(float *)buffer;
+    room.corner[1].position.x = dist_ab;
+    room.corner[2].position.x = dist_ab;
+    room.corner[2].position.y = dist_ad;
+    room.corner[3].position.y = dist_ad;
 }
 
-void handle_http(const HttpSubTaskData *parameter_ptr)
+void handle_http_scan(const HttpSubTaskData *parameter_ptr)
 {
     std::string url = "http://";
     url.append(parameter_ptr->antenna->ip);
@@ -100,7 +160,7 @@ void handle_http_task(void *task_parameter)
     // cleanup data we dont need
     task_data_ptr->device_buffer->clear();
 
-    handle_http(task_data_ptr);
+    handle_http_scan(task_data_ptr);
 
     // each task self deletes after it finishes execution
     vTaskDelete(NULL);
@@ -139,52 +199,45 @@ void loop()
 {
     uint32_t timestamp = millis();
 
-    Antenna antenna = Antenna{Point{0.0f, 0.0f}, "192.168.178.39"};
-    const HttpSubTaskData *subtask_data = task_parameter_create(&antenna);
-
-    handle_http(subtask_data);
-
-    for (auto device : *subtask_data->device_buffer)
+    // create tasks
+    for (int i = 0; i < NUM_SUB_TASKS; i++)
     {
-        Serial.println(estimate_distance(&device));
+        xTaskCreate(handle_http_task, task_names[i].c_str(), 4096, (void *)&sub_task_data_ptr[i], 0, &http_task_handles[i]);
     }
 
-    /*
-        // create tasks
-        for (int i = 0; i < NUM_SUB_TASKS; i++)
-        {
-            xTaskCreate(handle_http_task, task_names[i].c_str(), 4096, (void *)&sub_task_data_ptr[i], 0, &http_task_handles[i]);
-        }
+    // since each scan task is going to take at least one second we can wait here.
+    vTaskDelay(900 / portTICK_PERIOD_MS);
 
-        // since each scan task is going to take at least one second we can wait here.
-        vTaskDelay(900 / portTICK_PERIOD_MS);
-
-        while (true)
+    while (true)
+    {
+        // wait out all tasks or the timeout period
+        if (millis() - timestamp > REQUEST_TIMEOUT_MILLIS)
         {
-            // wait out all tasks or the timeout period
-            if (millis() - timestamp > REQUEST_TIMEOUT_MILLIS)
+            Serial.println("Some tasks did not complete in time! Terminating...");
+
+            // if timeout period is exceeded, terminate tasks using their handle
+            for (auto handle : http_task_handles)
             {
-                Serial.println("Some tasks did not complete in time! Terminating...");
-
-                // if timeout period is exceeded, terminate tasks using their handle
-                for (auto handle : http_task_handles)
+                if (eTaskGetState(handle) != eDeleted)
                 {
-                    if (eTaskGetState(handle) != eDeleted)
-                    {
-                        vTaskDelete(handle);
-                    }
+                    vTaskDelete(handle);
                 }
-                break;
             }
-
-            // if all tasks terminated before the timeout we can break early
-            if (eTaskGetState(http_task_handles[0]) == eDeleted && eTaskGetState(http_task_handles[1]) == eDeleted && eTaskGetState(http_task_handles[2]) == eDeleted && eTaskGetState(http_task_handles[3]) == eDeleted)
-            {
-                break;
-            }
-            vTaskDelay(150 / portTICK_PERIOD_MS);
+            break;
         }
 
-    */
+        // if all tasks terminated before the timeout we can break early
+        if (eTaskGetState(http_task_handles[0]) == eDeleted &&
+            eTaskGetState(http_task_handles[1]) == eDeleted &&
+            eTaskGetState(http_task_handles[2]) == eDeleted &&
+            eTaskGetState(http_task_handles[3]) == eDeleted)
+        {
+            break;
+        }
+        vTaskDelay(150 / portTICK_PERIOD_MS);
+    }
+
+    // all tasks are now completed. we need to use their vectors
+
     // create map from LPSIP and vectors and pass it to the distance estimator
 }
