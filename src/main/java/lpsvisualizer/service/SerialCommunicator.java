@@ -40,7 +40,8 @@ public class SerialCommunicator {
             ESP_CONFIG_START_PREFIX, this::handleConfigStart,
             ESP_CONFIG_REQ_PREFIX, this::handleConfiguration,
             ESP_POS_DATA_START_PREFIX, this::handlePositionDataBlock,
-            ESP_CONFIG_DIST1_PREFIX, this::handle
+            ESP_CONFIG_DIST1_PREFIX, (buf, in, out) -> handleDistance(buf, in, out, 1),
+            ESP_CONFIG_DIST2_PREFIX, (buf, in, out) -> handleDistance(buf, in, out, 2)
     );
 
     private final PositionWebSocketHandler webSocketService;
@@ -110,7 +111,7 @@ public class SerialCommunicator {
         return (byte) (i & 0xFF);
     }
 
-    private void handleConfigStart(byte[] buffer, InputStream in, OutputStream out) throws IOException {
+    private void handleConfigStart(byte[] buffer, InputStream in, OutputStream out) {
         System.out.println("The LPS controller requested to configure.");
         System.out.println(
                 """
@@ -182,18 +183,28 @@ public class SerialCommunicator {
 
     private void handleDistance(byte[] buffer, InputStream in, OutputStream out, int mode) throws IOException {
         Scanner scanner = new Scanner(in);
-        if(mode == 0) {
-            System.out.println("Please enter the distance in metres from corner A to corner B:");
 
-            scanner.();
-            while (true) {
-                if (System.in.available() > 0) {
-                    next = System.in.read();
-                    if (next > 64 && next < 70) {
-                        out.write(next);
-                        return;
-                    }
-                    System.out.println("Type A - D to specify:");
+        System.out.printf(
+                "Please enter the distance in metres from corner %s to corner %s as a float:%n",
+                "A",
+                switch (mode) {
+                    case 1 -> "B";
+                    case 2 -> "D";
+                    default -> throw new IllegalStateException("Unexpected value: " + mode);
+                }
+        );
+
+        while (true) {
+            if (scanner.hasNext()) {
+                if (scanner.hasNextFloat()) {
+                    int next = Float.floatToRawIntBits(scanner.nextFloat());
+                    out.write(next >> 24);
+                    out.write(next >> 16);
+                    out.write(next >> 8);
+                    out.write(next);
+                    return;
+                } else {
+                    System.out.println("Please enter a float:");
                 }
             }
         }
