@@ -6,6 +6,7 @@
 #include "LPSDevice.h"
 #include "LPSPositionEstimator.h"
 #include "LPSRoom.h"
+#include <map>
 
 const uint32_t REQUEST_TIMEOUT_MILLIS = 1500;
 
@@ -26,22 +27,34 @@ void setupWiFi()
     WiFi.mode(WIFI_AP);
     Serial.print("Setting up Access Point...");
     WiFi.softAPConfig(local_ip, gateway, subnet);
-    WiFi.softAP(LPS_SSID.c_str(), LPS_PASSCODE.c_str());
+    WiFi.softAP(LPS_SSID.c_str(), LPS_PASSCODE.c_str(), 1, 0, 5, false);
 }
 
-void handle_http_toggle_config_mode(std::string ip)
+void handle_http_toggle_config_mode(std::string ip, bool disable)
 {
+    Serial.println(ip.c_str());
     std::string url = "http://";
     url.append(ip);
     url.append(":");
     url.append(std::to_string(LPS_ANTENNA_PORT));
     url.append("/api/config");
+    url.append(disable ? "/disable" : "/enable");
 
     HTTPClient client;
 
     client.begin(url.c_str());
     client.POST("");
     client.end();
+}
+
+std::string get_ip_as_string(uint32_t addr)
+{
+    uint8_t octet4 = (addr >> 24) & 0xFF;
+    uint8_t octet3 = (addr >> 16) & 0xFF;
+    uint8_t octet2 = (addr >> 8) & 0xFF;
+    uint8_t octet1 = addr & 0xFF;
+
+    return std::to_string(octet1) + "." + std::to_string(octet2) + "." + std::to_string(octet3) + "." + std::to_string(octet4);
 }
 
 void setupLPSRoom()
@@ -56,25 +69,25 @@ void setupLPSRoom()
         esp_wifi_ap_get_sta_list(&stationList);
         esp_netif_get_sta_list(&stationList, &netif_sta_list);
 
+        Serial.println(netif_sta_list.num);
+
         Serial.print(".");
         vTaskDelay(500 / portTICK_PERIOD_MS);
     } while (netif_sta_list.num < TOTAL_NUMBER_OF_ANTENNAS);
+
+    for (int i = 0; i < TOTAL_NUMBER_OF_ANTENNAS; i++)
+    {
+        handle_http_toggle_config_mode(get_ip_as_string(netif_sta_list.sta[i].ip.addr), 1);
+    }
 
     Serial.write("ESP_CONFIG_START");
 
     // all antennas connected
     for (int i = 0; i < TOTAL_NUMBER_OF_ANTENNAS; i++)
     {
-        uint32_t addr = netif_sta_list.sta[i].ip.addr;
+        std::string ip = get_ip_as_string(netif_sta_list.sta[i].ip.addr);
 
-        uint8_t octet1 = (addr >> 24) & 0xFF;
-        uint8_t octet2 = (addr >> 16) & 0xFF;
-        uint8_t octet3 = (addr >> 8) & 0xFF;
-        uint8_t octet4 = addr & 0xFF;
-
-        std::string ip = std::to_string(octet1) + "." + std::to_string(octet2) + "." + std::to_string(octet3) + "." + std::to_string(octet4);
-
-        handle_http_toggle_config_mode(ip);
+        handle_http_toggle_config_mode(ip, 0);
 
         // expecting A - D from visualizer
         Serial.write("ESP_CONFIG_REQ");
@@ -89,12 +102,12 @@ void setupLPSRoom()
         // for now we just associate the ip with one of the corners
         room.corner[response - 65] = Antenna{Point{0, 0}, ip};
 
-        handle_http_toggle_config_mode(ip);
+        handle_http_toggle_config_mode(ip, 1);
     }
 
     // now setting the distances...
-    handle_http_toggle_config_mode(room.corner[0].ip);
-    handle_http_toggle_config_mode(room.corner[1].ip);
+    handle_http_toggle_config_mode(room.corner[0].ip, 0);
+    handle_http_toggle_config_mode(room.corner[1].ip, 0);
 
     uint8_t buffer[4];
     Serial.write("ESP_CONFIG_DIST1");
@@ -105,6 +118,8 @@ void setupLPSRoom()
 
     // expecting float
     float dist_ab = *(float *)buffer;
+    handle_http_toggle_config_mode(room.corner[1].ip, 1);
+    handle_http_toggle_config_mode(room.corner[3].ip, 0);
 
     Serial.write("ESP_CONFIG_DIST2");
     while (Serial.available() < 4)
@@ -117,6 +132,9 @@ void setupLPSRoom()
     room.corner[2].position.x = dist_ab;
     room.corner[2].position.y = dist_ad;
     room.corner[3].position.y = dist_ad;
+
+    handle_http_toggle_config_mode(room.corner[0].ip, 1);
+    handle_http_toggle_config_mode(room.corner[3].ip, 1);
 }
 
 void handle_http_scan(const HttpSubTaskData *parameter_ptr)
@@ -170,6 +188,7 @@ void setup()
 {
     Serial.begin(115200);
     setupWiFi();
+    setupLPSRoom();
 }
 
 const HttpSubTaskData *task_parameter_create(Antenna *antenna)
@@ -197,7 +216,7 @@ const std::string task_names[NUM_SUB_TASKS] = {"antenna_A_GET", "antenna_B_GET",
 
 void loop()
 {
-    uint32_t timestamp = millis();
+    /*uint32_t timestamp = millis();
 
     // create tasks
     for (int i = 0; i < NUM_SUB_TASKS; i++)
@@ -235,9 +254,16 @@ void loop()
             break;
         }
         vTaskDelay(150 / portTICK_PERIOD_MS);
-    }
+    }*/
 
     // all tasks are now completed. we need to use their vectors
 
     // create map from LPSIP and vectors and pass it to the distance estimator
+
+    //std::map<uint16_t, LPSDEVICE(*)[4]> mapped_measurements;
+
+    // todo iterate over each vector
+    // if an id is not yet in the map, add it and create the array via MALLOC to store the device ptr at the correct index.
+
+    // mapped_measurements.insert()
 }
