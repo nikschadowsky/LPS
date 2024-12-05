@@ -53,15 +53,21 @@ void handle_request()
     }
     else
     {
-        handle_illegal_action();
+        handle_IllegalAction_ConfigMode();
     }
 }
 
 // handles a POST request to /api/config. Toggles the config mode of this antenna.
-void handle_config_requested()
+void handle_config_enable()
 {
-    Serial.println("Requested toggle of config mode...");
-    LPSConfigurationHandler::toggle_config_mode();
+    LPSConfigurationHandler::set_config_mode(1);
+
+    server.send(202, "text/html", SUCCESSFUL_CONFIG_TOGGLE_HTML.c_str());
+}
+
+void handle_config_disable()
+{
+    LPSConfigurationHandler::set_config_mode(0);
 
     server.send(202, "text/html", SUCCESSFUL_CONFIG_TOGGLE_HTML.c_str());
 }
@@ -94,7 +100,8 @@ void LPSANTENNASENDER::init_server()
     Serial.println(WiFi.localIP());
 
     server.on("/api/scan", HTTP_GET, handle_request);
-    server.on("/api/config", HTTP_POST, handle_config_requested);
+    server.on("/api/config/enable", HTTP_POST, handle_config_enable);
+    server.on("/api/config/disable", HTTP_POST, handle_config_disable);
     server.on("/api/config", HTTP_GET, handle_get_config_mode);
     server.onNotFound(handle_illegal_action);
 

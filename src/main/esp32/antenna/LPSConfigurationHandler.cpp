@@ -5,7 +5,7 @@
 #include <string>
 #include <HardwareSerial.h>
 
-const uint8_t LED_PIN = 23; // LED Pin is GPIO34
+const uint8_t LED_PIN = 23; // LED Pin is GPIO23
 
 bool _configMode;
 
@@ -16,9 +16,9 @@ void LPSConfigurationHandler::init()
     digitalWrite(LED_PIN, 0);
 }
 
-void LPSConfigurationHandler::toggle_config_mode()
+void LPSConfigurationHandler::set_config_mode(bool value) 
 {
-    _configMode ^= 1;
+    _configMode = value;
     digitalWrite(LED_PIN, _configMode);
 }
 

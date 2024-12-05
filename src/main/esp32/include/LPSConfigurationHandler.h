@@ -5,7 +5,7 @@ class LPSConfigurationHandler
 {
 public:
     static void init();
-    static void toggle_config_mode();
+    static void set_config_mode(bool value);
     static bool config_mode();
 };
 
