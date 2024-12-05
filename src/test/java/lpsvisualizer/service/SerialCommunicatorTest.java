@@ -188,7 +188,8 @@ class SerialCommunicatorTest {
         await().atMost(Durations.ONE_MINUTE).until(() -> in.available() == 0);
         serialCommunicator.stop();
         verify(mockedWSHandler, times(2)).sendPositionsToClients(positionCaptor.capture());
-        assertThat(positionCaptor.getAllValues().get(0)).hasSize(1).contains(new DisplayablePosition(4, 4.0f, 7.5f, 1.0f));
+        assertThat(positionCaptor.getAllValues().get(0)).hasSize(1)
+                                                        .contains(new DisplayablePosition(4, 4.0f, 7.5f, 1.0f));
         assertThat(positionCaptor.getAllValues().get(1)).hasSize(1)
                                                         .contains(new DisplayablePosition(
                                                                 5,
@@ -224,9 +225,7 @@ class SerialCommunicatorTest {
                                    .i(0xFF).i(0xFF).i(0xFF).i(0xFF) // y1
                                    .i(0x3F).i(0x80).i(0x0).i(0x0) // uncertainty = 1.0f
                                    .i(0x0).i(0x5) // id2
-                                   .i(0x40).i(0x80).i(0x0).i(0x0) // x = 4.0f
-                                   .i(0x00)
-                                   .ba(SerialCommunicator.ESP_POS_DATA_END_SUFFIX) // overlaps with x2, y2
+                                   .ba(SerialCommunicator.ESP_POS_DATA_END_SUFFIX) // overlaps with x2, y2 and uncertainty
                                    .ba(SerialCommunicator.ESP_POS_DATA_END_SUFFIX)
                                    .s("some more data")
                                    .build());
