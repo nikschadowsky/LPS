@@ -52,11 +52,14 @@ public class SerialCommunicator {
 
     private final AtomicBoolean signal = new AtomicBoolean(false);
 
+    private final Scanner scanner = new Scanner(System.in);
+
     public SerialCommunicator(PositionWebSocketHandler webSocketService) {
         this.webSocketService = webSocketService;
     }
 
     public void start() {
+        System.out.println("Starting serial communicator");
         SerialPort com = SerialPort.getCommPort(COM_PORT);
         com.setBaudRate(115200);
         com.setComPortTimeouts(SerialPort.TIMEOUT_READ_SEMI_BLOCKING, 0, 0);
@@ -129,17 +132,19 @@ public class SerialCommunicator {
         System.out.println("An antenna is lighting up. Which corner of the room is this antenna representing?");
         System.out.println("Type A - D to specify:");
 
-        int next;
-        while (true) {
-            if (System.in.available() > 0) {
-                next = System.in.read();
-                if (next > 64 && next < 70) {
-                    out.write(next);
+        while (signal.get()) {
+            if (scanner.hasNext()) {
+                String next = scanner.nextLine();
+
+                if (next.length() == 1 && next.charAt(0) >= 'A' && next.charAt(0) <= 'D') {
+                    out.write(next.charAt(0));
                     return;
+                } else {
+                    System.out.println("Type A - D to specify:");
                 }
-                System.out.println("Type A - D to specify:");
             }
         }
+
     }
 
     private void handlePositionDataBlock(byte[] buffer, InputStream in, OutputStream out) throws IOException {
@@ -182,8 +187,6 @@ public class SerialCommunicator {
     }
 
     private void handleDistance(byte[] buffer, InputStream in, OutputStream out, int mode) throws IOException {
-        Scanner scanner = new Scanner(in);
-
         System.out.printf(
                 "Please enter the distance in metres from corner %s to corner %s as a float:%n",
                 "A",
@@ -194,7 +197,7 @@ public class SerialCommunicator {
                 }
         );
 
-        while (true) {
+        while (signal.get()) {
             if (scanner.hasNext()) {
                 if (scanner.hasNextFloat()) {
                     int next = Float.floatToRawIntBits(scanner.nextFloat());
@@ -204,6 +207,7 @@ public class SerialCommunicator {
                     out.write(next);
                     return;
                 } else {
+                    scanner.next();
                     System.out.println("Please enter a float:");
                 }
             }
