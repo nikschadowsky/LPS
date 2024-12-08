@@ -39,8 +39,6 @@ void deserialize_devices(uint8_t *buffer, std::vector<LPSDEVICE> *target)
     arraySize -= 3;
     uint8_t vectorSize = arraySize / SERIALIZED_DEVICE_SIZE;
 
-    Serial.print("Devices found: ");
-    Serial.println(vectorSize);
 
     target->reserve(vectorSize);
 
@@ -52,7 +50,6 @@ void deserialize_devices(uint8_t *buffer, std::vector<LPSDEVICE> *target)
         LPSDEVICE device = {id, rssi};
 
         target->push_back(device);
-        Serial.println(get_device_formatted(device).c_str());
     }
 }
 
