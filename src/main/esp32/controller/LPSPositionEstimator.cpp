@@ -1,6 +1,7 @@
 #include "LPSPositionEstimator.h"
 #include <stdint.h>
 #include <math.h>
+#include <HardwareSerial.h>
 
 // reference RSSI at a distance of 1m from an antenna
 const int16_t REFERENCE_RSSI = -50;
@@ -88,6 +89,8 @@ LPSPosition estimate_position(
     const LPSDEVICE *measurementC_ptr,
     const LPSDEVICE *measurementD_ptr)
 {
+    // return LPSPosition{ab_distance(room_ptr), ad_distance(room_ptr)};
+
     float distances[4] = {estimate_distance(measurementA_ptr),
                           estimate_distance(measurementB_ptr),
                           estimate_distance(measurementC_ptr),

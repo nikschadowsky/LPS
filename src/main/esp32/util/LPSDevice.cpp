@@ -39,17 +39,14 @@ void deserialize_devices(uint8_t *buffer, std::vector<LPSDEVICE> *target)
     arraySize -= 3;
     uint8_t vectorSize = arraySize / SERIALIZED_DEVICE_SIZE;
 
-
     target->reserve(vectorSize);
 
     for (int i = 0; i < vectorSize; i++)
     {
-        uint16_t id = (buffer[i] << 8) | buffer[i + 1];
-        int8_t rssi = buffer[i + 2];
+        uint16_t id = (buffer[i * SERIALIZED_DEVICE_SIZE] << 8) | buffer[i * SERIALIZED_DEVICE_SIZE + 1];
+        int8_t rssi = buffer[i * SERIALIZED_DEVICE_SIZE + 2];
 
-        LPSDEVICE device = {id, rssi};
-
-        target->push_back(device);
+        target->push_back(LPSDEVICE{id, rssi});
     }
 }
 

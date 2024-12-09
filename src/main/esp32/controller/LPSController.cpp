@@ -7,6 +7,7 @@
 #include "LPSPositionEstimator.h"
 #include "LPSRoom.h"
 #include <map>
+#include <array>
 
 const uint32_t REQUEST_TIMEOUT_MILLIS = 1500;
 
@@ -119,6 +120,7 @@ void setupLPSRoom()
 
     // expecting float
     float dist_ab = *(float *)buffer;
+    dist_ab = 7.89f;
     handle_http_toggle_config_mode(room_ptr->corner[1].ip, 1);
     handle_http_toggle_config_mode(room_ptr->corner[3].ip, 0);
 
@@ -129,6 +131,7 @@ void setupLPSRoom()
     Serial.readBytes(buffer, 4);
 
     float dist_ad = *(float *)buffer;
+    dist_ad = 9.5f;
     room_ptr->corner[1].position.x = dist_ab;
     room_ptr->corner[2].position.x = dist_ab;
     room_ptr->corner[2].position.y = dist_ad;
@@ -249,7 +252,7 @@ void handle_tcp_socket(const TCPSocketData *antenna_data[TOTAL_NUMBER_OF_ANTENNA
     }
 }
 
-const TCPSocketData *tcp_socket_data_ptr[4]; // array of pointers to the data containers
+const TCPSocketData *tcp_socket_data_ptr[4]; // array of pointers to the data containers; aligns with the order of the antennas in LPSRoom
 
 const TCPSocketData *tcp_socket_data_create(Antenna *antenna)
 {
@@ -262,6 +265,29 @@ const TCPSocketData *tcp_socket_data_create(Antenna *antenna)
     return parameter;
 }
 
+const std::map<uint16_t, std::array<LPSDEVICE, 4> *> *mapped_measurements;
+
+struct Tuple
+{
+    const uint16_t id;
+    LPSDEVICE *measurements;
+};
+
+std::vector<Tuple> *meas;
+
+Tuple *get_tuple_with_id(uint16_t id)
+{
+    for (auto &tup : *meas)
+    {
+        if (tup.id == id)
+        {
+            return &tup;
+        }
+    }
+
+    return nullptr;
+}
+
 void setup()
 {
     Serial.begin(115200);
@@ -272,6 +298,9 @@ void setup()
     {
         tcp_socket_data_ptr[i] = tcp_socket_data_create(&room_ptr->corner[i]);
     }
+
+    mapped_measurements = new std::map<uint16_t, std::array<LPSDEVICE, 4> *>();
+    meas = new std::vector<Tuple>;
 }
 
 void loop()
@@ -285,9 +314,50 @@ void loop()
 
     // create map from LPSIP and vectors and pass it to the distance estimator
 
-    std::map<uint16_t, LPSDEVICE *[4]> mapped_measurements;
-
     // todo iterate over each vector
     // if an id is not yet in the map, add it and create the array via MALLOC to store the device ptr at the correct index.
-    mapped_measurements.insert({1, (LPSDEVICE *)nullptr});
+
+    for (uint8_t i = 0; i < TOTAL_NUMBER_OF_ANTENNAS; i++)
+    {
+        const TCPSocketData *data = tcp_socket_data_ptr[i];
+
+        for (uint8_t j = 0; j < tcp_socket_data_ptr[i]->device_buffer->size(); j++)
+        {
+            LPSDEVICE device = data->device_buffer->at(j);
+            uint16_t id = device.id;
+
+            Tuple *tuple = get_tuple_with_id(id);
+
+            if (tuple)
+            {
+                tuple->measurements[i] = device;
+            }
+            else
+            {
+                LPSDEVICE measurement_data[4];
+                measurement_data[i] = device;
+
+                Tuple new_tuple = Tuple{id, measurement_data};
+
+                meas->push_back(new_tuple);
+            }
+        }
+    }
+
+    LPSPosition *positions = new LPSPosition[meas->size()];
+
+    for (uint16_t i = 0; i < meas->size(); i++)
+    {
+        auto devices = meas->at(i).measurements;
+        positions[i] = estimate_position(room_ptr, &devices[0], &devices[1], &devices[2], &devices[3]);
+        Serial.print(positions[i].position.x);
+        Serial.print(" ");
+        Serial.println(positions[i].position.y);
+    }
+
+    meas->clear();
+
+    // todo fix memory leak
+
+    // mapped_measurements->insert();ü
 }
