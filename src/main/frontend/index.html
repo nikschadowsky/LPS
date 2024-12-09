@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LPS</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>LPS</h1>
+    <div class="main-container">
+        <div class="content-container">
+            <div class="tabs">
+                <button class="tab-button active" data-tab="position">Position Mode</button>
+                <button class="tab-button" data-tab="heatmap">Heatmap Mode</button>
+            </div>
+
+            <div id="position-container" class="tab-content active">
+                <div id="floorplan-container">
+                    <img src="floorplan.png" alt="Floor Plan" id="floorplan">
+                    <div id="positions-container"></div>
+                </div>
+            </div>
+
+            <div id="heatmap-container" class="tab-content">
+                <div id="floorplan-container-heatmap">
+                    <img src="floorplan.png" alt="Floor Plan Heatmap" id="floorplan-heatmap">
+                    <div id="heatmap-overlay"></div>
+                </div>
+            </div>
+        </div>
+
+        <aside class="sidebar">
+            <h2>Position Details</h2>
+            <div id="sidebar-content">
+                <p>Add a position to see more details.</p>
+            </div>
+        </aside>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
