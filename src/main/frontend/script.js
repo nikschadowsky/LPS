@@ -2,11 +2,14 @@ const SOCKET_URL = 'ws://localhost:8765';
 
 const floorplan = document.getElementById('floorplan');
 const positionsContainer = document.getElementById('positions-container');
+const heatmapContainer = document.getElementById('heatmap-container')
 const sidebarContent = document.getElementById('sidebar-content');
+const positionList = document.getElementById('position-list')
 const tabButtons = document.querySelectorAll('.tab-button');
 const tabContents = document.querySelectorAll('.tab-content');
 
 const positions = {};
+const sidebarData = [];
 const socket = new WebSocket(SOCKET_URL);
 
 socket.addEventListener('open', onWebSocketOpen);
@@ -50,6 +53,7 @@ function handlePosition(position) {
     if (positions[position.id]) {
         updatePositionData(position);
         updatePositionLabel(positions[position.id]);
+        // updatePositionHeatmap(positions[position.id])
     } else {
         createPositionLabel(position);
     }
@@ -60,11 +64,6 @@ function createPositionLabel(position) {
     label.classList.add('position-label');
     label.title = position.id;
     positionsContainer.appendChild(label);
-
-    label.addEventListener('click', () => {
-        updateSidebar(position);
-    });
-
     positions[position.id] = { element: label, data: position };
     updatePositionLabel(positions[position.id]);
 }
@@ -72,6 +71,8 @@ function createPositionLabel(position) {
 function updatePositionData(position) {
     const pos = positions[position.id];
     if (pos) pos.data = position;
+    sidebarData[position.id] = Date.now();
+    updateSidebar(position);
 }
 
 function removePosition(id) {
@@ -103,31 +104,13 @@ function updatePositionLabel(posObj) {
     posObj.element.style.top = `${y * yRatio}px`;
 }
 
-function updateSidebar(position) {
-    sidebarContent.innerHTML = '';
-    sidebarContent.appendChild(createSidebarTitle(position));
-    const list = document.createElement('ul');
-    Object.keys(position).forEach(key => {
-        if (!['id', 'x', 'y'].includes(key)) {
-            list.appendChild(createSidebarListItem(key, position[key]));
-        }
-    });
-    sidebarContent.appendChild(list);
-}
+function updateSidebar() {
+    positionList.innerHTML = '';
+    for (const [id, lastSeen] of Object.entries(sidebarData)) {
+        const content = document.createElement('li');
+        content.innerText = `${id} | last seen: ${new Date(lastSeen).toLocaleString()}`;
+        positionList.appendChild(content);
+    }
 
-function createSidebarTitle(position) {
-    const title = document.createElement('h3');
-    title.innerText = position.name || `Position ${position.id}`;
-    return title;
-}
-
-function createSidebarListItem(key, value) {
-    const listItem = document.createElement('li');
-    listItem.innerHTML = `<strong>${capitalizeFirstLetter(key)}:</strong> ${value}`;
-    return listItem;
-}
-
-function capitalizeFirstLetter(string) {
-    return string.charAt(0).toUpperCase() + string.slice(1);
 }
 
