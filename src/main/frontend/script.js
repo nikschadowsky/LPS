@@ -63,7 +63,6 @@ function createPositionLabel(position) {
 
     label.addEventListener('click', () => {
         updateSidebar(position);
-        highlightLabel(position.id);
     });
 
     positions[position.id] = { element: label, data: position };

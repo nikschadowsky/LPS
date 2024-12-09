@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -7,6 +8,7 @@
     <title>LPS</title>
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
     <h1>LPS</h1>
     <div class="main-container">
@@ -14,6 +16,7 @@
             <div class="tabs">
                 <button class="tab-button active" data-tab="position">Position Mode</button>
                 <button class="tab-button" data-tab="heatmap">Heatmap Mode</button>
+                <button class="tab-button" data-tab="setup">Setup</button>
             </div>
 
             <div id="position-container" class="tab-content active">
@@ -29,6 +32,11 @@
                     <div id="heatmap-overlay"></div>
                 </div>
             </div>
+
+            <div id="setup-container" class="tab-content">
+                <h2>Setup Configuration</h2>
+                <p>To appear on the map download the App nRF Connect and start a BLE Beacon with the following settings:</p>
+            </div>
         </div>
 
         <aside class="sidebar">
@@ -41,4 +49,5 @@
 
     <script src="script.js"></script>
 </body>
+
 </html>
