@@ -39,13 +39,11 @@ public class SerialCommunicator {
             ESP_CONFIG_START_PREFIX, this::handleConfigStart,
             ESP_CONFIG_REQ_PREFIX, this::handleConfiguration,
             ESP_POS_DATA_START_PREFIX, this::handlePositionDataBlock,
-            ESP_CONFIG_DIST1_PREFIX, (buf, in, out) -> handleDistance(buf, in, out, DISTANCE_INSERTION_MODE.DIST_AB),
-            ESP_CONFIG_DIST2_PREFIX, (buf, in, out) -> handleDistance(buf, in, out, DISTANCE_INSERTION_MODE.DIST_AD)
+            ESP_CONFIG_DIST1_PREFIX, (buf, in, out) -> handleDistance(buf, in, out, DistanceInsertionMode.DIST_AB),
+            ESP_CONFIG_DIST2_PREFIX, (buf, in, out) -> handleDistance(buf, in, out, DistanceInsertionMode.DIST_AD)
     );
 
     private final PositionWebSocketHandler webSocketService;
-
-    private int counter = 0;
 
     private final ExecutorService portListener = Executors.newSingleThreadExecutor();
 
@@ -53,7 +51,7 @@ public class SerialCommunicator {
 
     private final Scanner scanner = new Scanner(System.in);
 
-    private LPSRoom room;
+    private final LPSRoom room = new LPSRoom();
 
     public SerialCommunicator(PositionWebSocketHandler webSocketService) {
         this.webSocketService = webSocketService;
@@ -84,6 +82,7 @@ public class SerialCommunicator {
                         for (Map.Entry<byte[], EspSerialRequestHandler> handler : ESP_HANDLERS.entrySet()) {
                             if (ByteChecker.checkSequence(handler.getKey(), buffer, head)) {
                                 handler.getValue().handle(buffer, in, out);
+                                head = 0;
                                 break;
                             }
                         }
@@ -97,11 +96,6 @@ public class SerialCommunicator {
 
             });
         }
-    }
-
-    public int incCounter() {
-
-        return counter++;
     }
 
     /**
@@ -187,7 +181,7 @@ public class SerialCommunicator {
         }
     }
 
-    private void handleDistance(byte[] buffer, InputStream in, OutputStream out, DISTANCE_INSERTION_MODE mode) throws IOException {
+    private void handleDistance(byte[] buffer, InputStream in, OutputStream out, DistanceInsertionMode mode) throws IOException {
         System.out.printf(
                 "Please enter the distance in metres from corner %s to corner %s as a float:%n",
                 mode.leftCorner, mode.rightCorner
@@ -230,13 +224,13 @@ public class SerialCommunicator {
         }
     }
 
-    private enum DISTANCE_INSERTION_MODE {
+    private enum DistanceInsertionMode {
         DIST_AB("A","B"), DIST_AD("A","D");
 
         private final String leftCorner;
         private final String rightCorner;
 
-        DISTANCE_INSERTION_MODE(String leftCorner, String rightCorner) {
+        DistanceInsertionMode(String leftCorner, String rightCorner) {
             this.leftCorner = leftCorner;
             this.rightCorner = rightCorner;
         }
