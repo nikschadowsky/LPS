@@ -107,8 +107,9 @@ public class DisplayablePosition {
         return Objects.hash(id, x, y);
     }
 
+
     @Override
     public String toString() {
-        return "DisplayablePosition{id=%d, x=%s, y=%s}".formatted(id, x, y);
+        return "DisplayablePosition{id=%d, x=%s, y=%s, uncertainty=%s}".formatted(id, x, y, uncertainty);
     }
 }
