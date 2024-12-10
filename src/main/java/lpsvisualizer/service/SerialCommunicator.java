@@ -2,7 +2,9 @@ package lpsvisualizer.service;
 
 
 import com.fazecast.jSerialComm.SerialPort;
+import lpsvisualizer.dto.PositionUpdate;
 import lpsvisualizer.entity.DisplayablePosition;
+import lpsvisualizer.entity.LPSRoom;
 import lpsvisualizer.util.ByteChecker;
 import lpsvisualizer.websocket.PositionWebSocketHandler;
 
@@ -11,10 +13,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.BufferOverflowException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Scanner;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -40,8 +39,8 @@ public class SerialCommunicator {
             ESP_CONFIG_START_PREFIX, this::handleConfigStart,
             ESP_CONFIG_REQ_PREFIX, this::handleConfiguration,
             ESP_POS_DATA_START_PREFIX, this::handlePositionDataBlock,
-            ESP_CONFIG_DIST1_PREFIX, (buf, in, out) -> handleDistance(buf, in, out, 1),
-            ESP_CONFIG_DIST2_PREFIX, (buf, in, out) -> handleDistance(buf, in, out, 2)
+            ESP_CONFIG_DIST1_PREFIX, (buf, in, out) -> handleDistance(buf, in, out, DISTANCE_INSERTION_MODE.DIST_AB),
+            ESP_CONFIG_DIST2_PREFIX, (buf, in, out) -> handleDistance(buf, in, out, DISTANCE_INSERTION_MODE.DIST_AD)
     );
 
     private final PositionWebSocketHandler webSocketService;
@@ -53,6 +52,8 @@ public class SerialCommunicator {
     private final AtomicBoolean signal = new AtomicBoolean(false);
 
     private final Scanner scanner = new Scanner(System.in);
+
+    private LPSRoom room;
 
     public SerialCommunicator(PositionWebSocketHandler webSocketService) {
         this.webSocketService = webSocketService;
@@ -167,7 +168,7 @@ public class SerialCommunicator {
                 )) {
                     // pos buffer head should be one less than suffix's length
                     // because of the other bytes read before successfully processing the suffix
-                    webSocketService.sendPositionsToClients(new ArrayList<>(positions));
+                    webSocketService.sendPositionsToClients(new PositionUpdate(room, new ArrayList<>(positions)));
                     positions.clear();
 
                     return;
@@ -186,21 +187,23 @@ public class SerialCommunicator {
         }
     }
 
-    private void handleDistance(byte[] buffer, InputStream in, OutputStream out, int mode) throws IOException {
+    private void handleDistance(byte[] buffer, InputStream in, OutputStream out, DISTANCE_INSERTION_MODE mode) throws IOException {
         System.out.printf(
                 "Please enter the distance in metres from corner %s to corner %s as a float:%n",
-                "A",
-                switch (mode) {
-                    case 1 -> "B";
-                    case 2 -> "D";
-                    default -> throw new IllegalStateException("Unexpected value: " + mode);
-                }
+                mode.leftCorner, mode.rightCorner
         );
 
         while (signal.get()) {
             if (scanner.hasNext()) {
                 if (scanner.hasNextFloat()) {
-                    int next = Float.floatToRawIntBits(scanner.nextFloat());
+                    float nextFloat = scanner.nextFloat();
+
+                    switch(mode){
+                        case DIST_AB -> room.setDistanceAB(nextFloat);
+                        case DIST_AD -> room.setDistanceAD(nextFloat);
+                    }
+
+                    int next = Float.floatToRawIntBits(nextFloat);
                     out.write(next >> 24);
                     out.write(next >> 16);
                     out.write(next >> 8);
@@ -224,6 +227,18 @@ public class SerialCommunicator {
     private static void checkBufferOverflow(byte[] buffer, int head) {
         if (head >= buffer.length) {
             throw new BufferOverflowException();
+        }
+    }
+
+    private enum DISTANCE_INSERTION_MODE {
+        DIST_AB("A","B"), DIST_AD("A","D");
+
+        private final String leftCorner;
+        private final String rightCorner;
+
+        DISTANCE_INSERTION_MODE(String leftCorner, String rightCorner) {
+            this.leftCorner = leftCorner;
+            this.rightCorner = rightCorner;
         }
     }
 }

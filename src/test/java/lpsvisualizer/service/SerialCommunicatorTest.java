@@ -1,7 +1,9 @@
 package lpsvisualizer.service;
 
 import com.fazecast.jSerialComm.SerialPort;
+import lpsvisualizer.dto.PositionUpdate;
 import lpsvisualizer.entity.DisplayablePosition;
+import lpsvisualizer.entity.LPSRoom;
 import lpsvisualizer.testutil.ByteArrayBuilder;
 import lpsvisualizer.websocket.PositionWebSocketHandler;
 import org.awaitility.Durations;
@@ -42,7 +44,7 @@ class SerialCommunicatorTest {
     private SerialCommunicator serialCommunicator;
 
     @Captor
-    private ArgumentCaptor<List<DisplayablePosition>> positionCaptor;
+    private ArgumentCaptor<PositionUpdate> positionUpdateCaptor;
 
     private AutoCloseable closeable;
 
@@ -111,10 +113,10 @@ class SerialCommunicatorTest {
                                    .s("some more data")
                                    .build());
         serialCommunicator.start();
-        await().atMost(Durations.ONE_MINUTE).until(() -> in.available() == 0);
+        await().atMost(Durations.ONE_SECOND).until(() -> in.available() == 0);
         serialCommunicator.stop();
-        verify(mockedWSHandler, times(1)).sendPositionsToClients(positionCaptor.capture());
-        assertThat(positionCaptor.getValue()).isEmpty();
+        verify(mockedWSHandler, times(1)).sendPositionsToClients(positionUpdateCaptor.capture());
+        assertThat(positionUpdateCaptor.getValue().getPositions()).isEmpty();
     }
 
     @Test
@@ -130,9 +132,10 @@ class SerialCommunicatorTest {
                                    .build());
         serialCommunicator.start();
         await().atMost(Durations.ONE_SECOND).until(() -> in.available() == 0);
-        verify(mockedWSHandler, times(1)).sendPositionsToClients(positionCaptor.capture());
+        verify(mockedWSHandler, times(1)).sendPositionsToClients(positionUpdateCaptor.capture());
         serialCommunicator.stop();
-        assertThat(positionCaptor.getValue()).hasSize(1).contains(new DisplayablePosition(4, 4.0f, 7.5f, 1.0f));
+        assertThat(positionUpdateCaptor.getValue().getPositions()).hasSize(1)
+                                                                  .contains(new DisplayablePosition(4, 4.0f, 7.5f, 1.0f));
     }
 
     @Test
@@ -152,18 +155,18 @@ class SerialCommunicatorTest {
                                    .build());
         serialCommunicator.start();
         await().atMost(Durations.ONE_MINUTE).until(() -> in.available() == 0);
-        verify(mockedWSHandler, times(1)).sendPositionsToClients(positionCaptor.capture());
+        verify(mockedWSHandler, times(1)).sendPositionsToClients(positionUpdateCaptor.capture());
         serialCommunicator.stop();
-        assertThat(positionCaptor.getValue()).hasSize(2)
-                                             .contains(
-                                                     new DisplayablePosition(4, 4.0f, 7.5f, 1.0f),
-                                                     new DisplayablePosition(
-                                                             5,
-                                                             Float.POSITIVE_INFINITY,
-                                                             Float.POSITIVE_INFINITY,
-                                                             1.0f
-                                                     )
-                                             );
+        assertThat(positionUpdateCaptor.getValue().getPositions()).hasSize(2)
+                                                                  .contains(
+                                                                          new DisplayablePosition(4, 4.0f, 7.5f, 1.0f),
+                                                                          new DisplayablePosition(
+                                                                                  5,
+                                                                                  Float.POSITIVE_INFINITY,
+                                                                                  Float.POSITIVE_INFINITY,
+                                                                                  1.0f
+                                                                          )
+                                                                  );
     }
 
     @Test
@@ -187,16 +190,16 @@ class SerialCommunicatorTest {
         serialCommunicator.start();
         await().atMost(Durations.ONE_MINUTE).until(() -> in.available() == 0);
         serialCommunicator.stop();
-        verify(mockedWSHandler, times(2)).sendPositionsToClients(positionCaptor.capture());
-        assertThat(positionCaptor.getAllValues().get(0)).hasSize(1)
-                                                        .contains(new DisplayablePosition(4, 4.0f, 7.5f, 1.0f));
-        assertThat(positionCaptor.getAllValues().get(1)).hasSize(1)
-                                                        .contains(new DisplayablePosition(
-                                                                5,
-                                                                Float.POSITIVE_INFINITY,
-                                                                Float.POSITIVE_INFINITY,
-                                                                1.0f
-                                                        ));
+        verify(mockedWSHandler, times(2)).sendPositionsToClients(positionUpdateCaptor.capture());
+        assertThat(positionUpdateCaptor.getAllValues().get(0).getPositions()).hasSize(1)
+                                                                             .contains(new DisplayablePosition(4, 4.0f, 7.5f, 1.0f));
+        assertThat(positionUpdateCaptor.getAllValues().get(1).getPositions()).hasSize(1)
+                                                                             .contains(new DisplayablePosition(
+                                                                                     5,
+                                                                                     Float.POSITIVE_INFINITY,
+                                                                                     Float.POSITIVE_INFINITY,
+                                                                                     1.0f
+                                                                             ));
 
     }
 
@@ -231,17 +234,17 @@ class SerialCommunicatorTest {
                                    .build());
         serialCommunicator.start();
         await().atMost(Durations.ONE_SECOND).until(() -> in.available() == 0);
-        verify(mockedWSHandler, times(1)).sendPositionsToClients(positionCaptor.capture());
+        verify(mockedWSHandler, times(1)).sendPositionsToClients(positionUpdateCaptor.capture());
         serialCommunicator.stop();
-        assertThat(positionCaptor.getValue()).hasSize(2)
-                                             .contains(
-                                                     new DisplayablePosition(
-                                                             4,
-                                                             Float.intBitsToFloat(-1),
-                                                             Float.intBitsToFloat(-1),
-                                                             1.0f
-                                                     )
-                                             );
+        assertThat(positionUpdateCaptor.getValue().getPositions()).hasSize(2)
+                                                                  .contains(
+                                                                          new DisplayablePosition(
+                                                                                  4,
+                                                                                  Float.intBitsToFloat(-1),
+                                                                                  Float.intBitsToFloat(-1),
+                                                                                  1.0f
+                                                                          )
+                                                                  );
     }
 
     @Test
@@ -268,6 +271,8 @@ class SerialCommunicatorTest {
         verify(out, times(1)).write(eq((int) 'A'));
     }
 
+    // todo test setup room
+
     private static class MockInputStream extends InputStream {
 
         private Iterator<Integer> iterator;
@@ -278,7 +283,10 @@ class SerialCommunicatorTest {
 
         @Override
         public int read() {
-            return iterator.next();
+            if (iterator.hasNext()) {
+                return iterator.next();
+            }
+            return -1;
         }
 
         @Override

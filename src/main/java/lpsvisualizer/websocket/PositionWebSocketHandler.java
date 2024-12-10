@@ -2,6 +2,7 @@ package lpsvisualizer.websocket;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lpsvisualizer.dto.PositionUpdate;
 import lpsvisualizer.entity.DisplayablePosition;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
@@ -31,11 +32,11 @@ public class PositionWebSocketHandler extends TextWebSocketHandler {
         sessions.remove(session);
     }
 
-    public void sendPositionsToClients(List<DisplayablePosition> positions) {
+    public void sendPositionsToClients(PositionUpdate update) {
         for (WebSocketSession session : sessions) {
             if (session.isOpen()) {
                 try {
-                    session.sendMessage(new TextMessage(mapper.writeValueAsString(positions)));
+                    session.sendMessage(new TextMessage(mapper.writeValueAsString(update)));
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
