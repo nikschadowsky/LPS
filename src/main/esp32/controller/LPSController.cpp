@@ -273,11 +273,11 @@ struct Tuple
     LPSDEVICE *measurements;
 };
 
-std::vector<Tuple> *meas;
+std::vector<Tuple> *measurement_vector;
 
 Tuple *get_tuple_with_id(uint16_t id)
 {
-    for (auto &tup : *meas)
+    for (auto &tup : *measurement_vector)
     {
         if (tup.id == id)
         {
@@ -299,8 +299,7 @@ void setup()
         tcp_socket_data_ptr[i] = tcp_socket_data_create(&room_ptr->corner[i]);
     }
 
-    mapped_measurements = new std::map<uint16_t, std::array<LPSDEVICE, 4> *>();
-    meas = new std::vector<Tuple>;
+    measurement_vector = new std::vector<Tuple>;
 }
 
 void loop()
@@ -339,25 +338,35 @@ void loop()
 
                 Tuple new_tuple = Tuple{id, measurement_data};
 
-                meas->push_back(new_tuple);
+                measurement_vector->push_back(new_tuple);
             }
         }
     }
 
-    LPSPosition *positions = new LPSPosition[meas->size()];
+    LPSPosition *positions = new LPSPosition[measurement_vector->size()];
 
-    for (uint16_t i = 0; i < meas->size(); i++)
+    for (uint16_t i = 0; i < measurement_vector->size(); i++)
     {
-        auto devices = meas->at(i).measurements;
-        positions[i] = estimate_position(room_ptr, &devices[0], &devices[1], &devices[2], &devices[3]);
+        auto devices = measurement_vector->at(i).measurements;
+
+        positions[i] = estimate_position(measurement_vector->at(i).id, room_ptr, &devices[0], &devices[1], &devices[2], &devices[3]);
+
         Serial.print(positions[i].position.x);
         Serial.print(" ");
         Serial.println(positions[i].position.y);
     }
 
-    meas->clear();
+    Serial.write("ESP_POS_DATA_START");
 
-    // todo fix memory leak
+    uint16_t buffer_size = measurement_vector->size() * SERIALIZED_POSITION_SIZE;
 
-    // mapped_measurements->insert();ü
+    uint8_t *buffer = new uint8_t[buffer_size];
+    serialize_lps_positions(positions, buffer, (uint16_t)measurement_vector->size());
+
+    Serial.write(buffer, buffer_size);
+    Serial.write("POS_DATA_END");
+
+    measurement_vector->clear();
+    delete[] positions;
+    delete[] buffer;
 }

@@ -29,7 +29,7 @@ float objective_function(const Point *predicted_center, const Antenna antenna[3]
     return (d1 - d2) * (d1 - d2) + (d1 - d3) * (d1 - d3);
 }
 
-LPSPosition gradient_descent(const Antenna antenna[3], const float distance[3])
+LPSPosition gradient_descent(const uint16_t id, const Antenna antenna[3], const float distance[3])
 {
     Point approximation = {
         (antenna[0].position.x + antenna[1].position.x + antenna[2].position.x) / 3.0f,
@@ -55,7 +55,7 @@ LPSPosition gradient_descent(const Antenna antenna[3], const float distance[3])
 
     float uncertainty = fabsf(boundary_distance(&approximation, &antenna[0], distance[0]));
 
-    return LPSPosition{approximation, uncertainty};
+    return LPSPosition{id, approximation, uncertainty};
 }
 
 bool lps_position_is_valid(LPSPosition *position)
@@ -83,6 +83,7 @@ Point calculate_midpoint(Point *a, Point *b)
  * Null ptr imply no measurement data
  */
 LPSPosition estimate_position(
+    const uint16_t id,
     const LPSRoom *room_ptr,
     const LPSDEVICE *measurementA_ptr,
     const LPSDEVICE *measurementB_ptr,
@@ -114,7 +115,7 @@ LPSPosition estimate_position(
         distance_buf[1] = distances[1];
         distance_buf[2] = distances[2];
 
-        positions[0] = gradient_descent(antenna_buf, distance_buf);
+        positions[0] = gradient_descent(id, antenna_buf, distance_buf);
         bitmap |= 1;
     }
 
@@ -129,7 +130,7 @@ LPSPosition estimate_position(
         distance_buf[1] = distances[2];
         distance_buf[2] = distances[3];
 
-        positions[1] = gradient_descent(antenna_buf, distance_buf);
+        positions[1] = gradient_descent(id, antenna_buf, distance_buf);
         bitmap |= 2;
     }
 
@@ -144,7 +145,7 @@ LPSPosition estimate_position(
         distance_buf[1] = distances[3];
         distance_buf[2] = distances[0];
 
-        positions[2] = gradient_descent(antenna_buf, distance_buf);
+        positions[2] = gradient_descent(id, antenna_buf, distance_buf);
         bitmap |= 4;
     }
 
@@ -159,7 +160,7 @@ LPSPosition estimate_position(
         distance_buf[1] = distances[0];
         distance_buf[2] = distances[1];
 
-        positions[3] = gradient_descent(antenna_buf, distance_buf);
+        positions[3] = gradient_descent(id, antenna_buf, distance_buf);
         bitmap |= 8;
     }
 
@@ -173,7 +174,7 @@ LPSPosition estimate_position(
         Point midpoint = calculate_midpoint(&midpoint_02, &midpoint_13);
         float uncertainty = fmaxf(fmaxf(fmaxf(positions[0].uncertainty, positions[1].uncertainty), positions[2].uncertainty), positions[3].uncertainty);
 
-        return LPSPosition{midpoint, uncertainty};
+        return LPSPosition{id, midpoint, uncertainty};
     }
 
     if (bitmap)
@@ -183,5 +184,38 @@ LPSPosition estimate_position(
     }
 
     // no point could be calculated
-    return {{infinityf(), infinityf()}, infinityf()};
+    return {id, {infinityf(), infinityf()}, infinityf()};
+}
+
+void serialize_lps_positions(const LPSPosition *position_ptr, uint8_t *target_buffer, uint16_t position_count)
+{
+    for (uint16_t i = 0; i < position_count; i++)
+    {
+        uint16_t offset = i * SERIALIZED_POSITION_SIZE;
+
+        // Serialize id in big-endian
+        target_buffer[offset] = (position_ptr[i].id >> 8) & 0xFF;
+        target_buffer[offset + 1] = position_ptr[i].id & 0xFF;
+
+        // Serialize position.x in big-endian
+        uint8_t *x_ptr = (uint8_t *)&position_ptr[i].position.x;
+        target_buffer[offset + 2] = x_ptr[3];
+        target_buffer[offset + 3] = x_ptr[2];
+        target_buffer[offset + 4] = x_ptr[1];
+        target_buffer[offset + 5] = x_ptr[0];
+
+        // Serialize position.y in big-endian
+        uint8_t *y_ptr = (uint8_t *)&position_ptr[i].position.y;
+        target_buffer[offset + 6] = y_ptr[3];
+        target_buffer[offset + 7] = y_ptr[2];
+        target_buffer[offset + 8] = y_ptr[1];
+        target_buffer[offset + 9] = y_ptr[0];
+
+        // Serialize uncertainty in big-endian
+        uint8_t *uncertainty_ptr = (uint8_t *)&position_ptr[i].uncertainty;
+        target_buffer[offset + 10] = uncertainty_ptr[3];
+        target_buffer[offset + 11] = uncertainty_ptr[2];
+        target_buffer[offset + 12] = uncertainty_ptr[1];
+        target_buffer[offset + 13] = uncertainty_ptr[0];
+    }
 }
