@@ -2,10 +2,9 @@ import Heatmap from "./heatmap.js";
 
 const SOCKET_URL = 'ws://localhost:8765';
 const heatmap = new Heatmap('floorplan', 'heatmapCanvas')
+const canvas = document.getElementById('heatmapCanvas');
 const floorplan = document.getElementById('floorplan');
 const img = floorplan;
-const xRatio = img.width / img.naturalWidth;
-const yRatio = img.height / img.naturalHeight;
 const positionsContainer = document.getElementById('positions-container');
 const positionList = document.getElementById('position-list')
 const tabButtons = document.querySelectorAll('.tab-button');
@@ -21,6 +20,7 @@ socket.addEventListener('close', onWebSocketClose);
 window.addEventListener('resize', onWindowResize);
 tabButtons.forEach(button => button.addEventListener('click', onTabButtonClick));
 tabButtons[1].addEventListener('click', () => heatmap.setHeatmapData([]));
+tabButtons[0].addEventListener('click', () => Object.values(positions).forEach(updatePositionLabel));
 
 function onWebSocketOpen() {
     console.log('WebSocket connection established.');
@@ -28,12 +28,28 @@ function onWebSocketOpen() {
 
 function onWebSocketMessage(event) {
     try {
-        const position = JSON.parse(event.data); // TODO: update DTO and add relative position calculation
-        console.log("Position:", position);
-        handlePosition(position);
+        const dto = JSON.parse(event.data);
+        console.log(dto);
+        if (dto.positions) {
+            dto.positions.forEach(position => {
+                console.log("Position:", position);
+                const relativePosition = calculateRelativePosition(position, dto.room);
+                console.log("Relative Position:", relativePosition)
+                handlePosition(relativePosition);
+            })
+        }
     } catch (err) {
         console.error('Error parsing WebSocket message:', err);
         console.log("WebSocket message:", event);
+    }
+
+}
+
+function calculateRelativePosition(position, room) {
+    const {id, x, y, uncertainty} = position;
+    const {distanceAB: width, distanceAD: height} = room;
+    return {
+        id: id, x: x / width, y: y / height, scale: (img.width / width) * 2 * uncertainty
     }
 }
 
@@ -56,7 +72,7 @@ function onTabButtonClick(event) {
 function handlePosition(position) {
     if (positions[position.id]) {
         updatePositionData(position);
-        updatePositionLabel(positions[position.id]);
+        Object.values(positions).forEach(updatePositionLabel)
         updatePositionHeatmap(positions[position.id])
     } else {
         createPositionLabel(position);
@@ -79,14 +95,6 @@ function updatePositionData(position) {
     updateSidebar(position);
 }
 
-function removePosition(id) {
-    const pos = positions[id];
-    if (pos) {
-        positionsContainer.removeChild(pos.element);
-        delete positions[id];
-    }
-}
-
 function updatePositionLabel(posObj) {
     if (!img.naturalWidth || !img.naturalHeight) {
         img.onload = () => updatePositionLabel(posObj);
@@ -98,17 +106,29 @@ function updatePositionLabel(posObj) {
         return;
     }
 
-    const {x, y} = posObj.data;
+    const {x, y, scale} = posObj.data;
+
+    console.log(`device: ${posObj.data.id}, timestamp: ${Date.now() - sidebarData[posObj.data.id]}`);
+    const timestamp = Date.now() - sidebarData[posObj.data.id];
+    if (timestamp < 5000 || isNaN(timestamp)) {
+        posObj.element.style.backgroundColor = 'rgba(0, 128, 0, 0.5)';
+    } else if (timestamp < 300000) {
+        posObj.element.style.backgroundColor = 'rgba(255,213,52,0.5)';
+    } else {
+        posObj.element.style.backgroundColor = 'rgba(206,25,25,0.5)';
+    }
 
     posObj.element.innerHTML = posObj.data.id;
     posObj.element.style.position = 'absolute';
-    posObj.element.style.left = `${x * xRatio}px`;
-    posObj.element.style.top = `${y * yRatio}px`;
+    posObj.element.style.left = `${x * img.width}px`;
+    posObj.element.style.top = `${y * img.height}px`;
+    posObj.element.style.width = `${scale}px`;
+    posObj.element.style.height = `${scale}px`;
 }
 
 function updatePositionHeatmap(posObj) {
     const {x, y} = posObj.data;
-    const newPoint = {x: x * xRatio, y: y * yRatio, value: 0.3};
+    const newPoint = {x: x * canvas.width, y: y * canvas.height, value: 0.3};
     heatmap.addHeatmapPoint(newPoint);
 }
 
