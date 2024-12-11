@@ -182,3 +182,42 @@ h1 {
         border-top: 1px solid #ddd;
     }
 }
+
+.instruction-content {
+    font-size: x-large;
+    padding-top: 30px;
+}
+
+.boxed {
+    background-color: blue;
+    padding: 12px 15px;
+    margin: 20px 0;
+    border-radius: 10px;
+    width: fit-content;
+}
+
+.boxed.warning {
+    background-color: #fa6161;
+    color: white;
+}
+
+.boxed.example {
+    background-color: #ffff00aa;
+    color: black;
+}
+
+.instruction-list {
+    margin-top: 20px;
+}
+.instruction-item {
+    margin-bottom: 10px;
+    margin-left: 40px;
+}
+
+h2 {
+    font-size: xx-large;
+}
+
+#setup-container {
+    margin-left: 40px;
+}

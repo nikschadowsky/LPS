@@ -10,44 +10,79 @@
 </head>
 
 <body>
-    <h1>LPS</h1>
-    <div class="main-container">
-        <div class="content-container">
-            <div class="tabs">
-                <button class="tab-button active" data-tab="position">Position Mode</button>
-                <button class="tab-button" data-tab="heatmap">Heatmap Mode</button>
-                <button class="tab-button" data-tab="setup">Setup</button>
-            </div>
+<h1>LPS</h1>
+<div class="main-container">
+    <div class="content-container">
+        <div class="tabs">
+            <button class="tab-button active" data-tab="position">Position Mode</button>
+            <button class="tab-button" data-tab="heatmap">Heatmap Mode</button>
+            <button class="tab-button" data-tab="setup">Setup</button>
+        </div>
 
-            <div id="position-container" class="tab-content active">
-                <div id="floorplan-container">
-                    <img src="floorplan.png" alt="Floor Plan" id="floorplan">
-                    <div id="positions-container"></div>
-                </div>
-            </div>
-
-            <div id="heatmap-container" class="tab-content">
-                <div id="floorplan-container-heatmap">
-                    <img src="floorplan.png" alt="Floor Plan Heatmap" id="floorplan-heatmap">
-                    <canvas id="heatmapCanvas"></canvas>
-                </div>
-            </div>
-
-            <div id="setup-container" class="tab-content">
-                <h2>Setup Configuration</h2>
-                <p>To appear on the map download the App nRF Connect and start a BLE Beacon with the following settings:</p>
+        <div id="position-container" class="tab-content active">
+            <div id="floorplan-container">
+                <img src="floorplan.png" alt="Floor Plan" id="floorplan">
+                <div id="positions-container"></div>
             </div>
         </div>
 
-        <aside class="sidebar">
-            <h2>Position Details</h2>
-            <div id="sidebar-content">
-                <p>Add a position to see more details.</p>
-                <ul id="position-list"></ul>
+        <div id="heatmap-container" class="tab-content">
+            <div id="floorplan-container-heatmap">
+                <img src="floorplan.png" alt="Floor Plan Heatmap" id="floorplan-heatmap">
+                <canvas id="heatmapCanvas"></canvas>
             </div>
-        </aside>
+        </div>
+
+        <div id="setup-container" class="tab-content">
+            <h2>Selbst erscheinen</h2>
+            <div class="instruction-content">
+                <p>Um selbst auf der Karte zu erscheinen, muss eine App installiert werden, um Bluetooth Low Energy
+                    Pakete
+                    zu verschicken. Dazu eignet sich auf Android die App nRF Connect aus dem Playstore.
+                </p>
+                <p class="boxed warning">
+                    <span class="">
+                    Auf iOS erlaubt diese App keine Erstellung eigener Services und kann deswegen nicht benutzt werden.
+                    </span>
+                </p>
+                <p>
+                    Mit den folgenden Schritten kann ein Advertiser erstellt werden, der LPS-konform ist.
+                </p>
+                <ol class="instruction-list">
+                    <li class="instruction-item">
+                        Advertiser erstellen
+                    </li>
+                    <li class="instruction-item">
+                        Manufacturer Data hinzufügen. Company ID muss hier 0x504C sein. <br>
+                        Das Datenfeld hat folgendes Muster: 0x53XXXX23. <br>
+                        Die 'X' sind durch eine im Raum eindeutige 16-Bit ID zu ersetzen.
+                        <p class="boxed example">
+                            Ein Beispiel für
+                            ein
+                            korrektes Datenfeld ist: 0x53000123</p>
+                    </li>
+                    <li class="instruction-item">
+                        Options ausklappen und Tx Power Level auf 1 setzen. Dadurch wird die Ergebnisqualität
+                        verbessert.
+                    </li>
+                    <li class="instruction-item">
+                        Service starten. Der Service sollte nun vom System aufgenommen werden und auf der Karte
+                        erscheinen.
+                    </li>
+                </ol>
+            </div>
+        </div>
     </div>
-    <script type="module" src="script.js"></script>
+
+    <aside class="sidebar">
+        <h2>Position Details</h2>
+        <div id="sidebar-content">
+            <p>Add a position to see more details.</p>
+            <ul id="position-list"></ul>
+        </div>
+    </aside>
+</div>
+<script type="module" src="script.js"></script>
 </body>
 
 </html>
