@@ -97,6 +97,15 @@ LPSPosition estimate_position(
                           estimate_distance(measurementC_ptr),
                           estimate_distance(measurementD_ptr)};
 
+    Serial.print(distances[0]);
+    Serial.print(" ");
+    Serial.print(distances[1]);
+    Serial.print(" ");
+    Serial.print(distances[2]);
+    Serial.print(" ");
+    Serial.print(distances[3]);
+    Serial.println();
+
     LPSPosition positions[4];
     Antenna antenna_buf[3];
     float distance_buf[3];

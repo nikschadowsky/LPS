@@ -83,6 +83,8 @@ void setupLPSRoom()
 
     room_ptr = new LPSRoom;
 
+    vTaskDelay(5000/ portTICK_RATE_MS);
+
     Serial.write("ESP_CONFIG_START");
 
     // all antennas connected
@@ -120,7 +122,7 @@ void setupLPSRoom()
 
     // expecting float
     float dist_ab = *(float *)buffer;
-    dist_ab = 7.89f;
+    dist_ab = 9.5f;
     handle_http_toggle_config_mode(room_ptr->corner[1].ip, 1);
     handle_http_toggle_config_mode(room_ptr->corner[3].ip, 0);
 
@@ -131,7 +133,7 @@ void setupLPSRoom()
     Serial.readBytes(buffer, 4);
 
     float dist_ad = *(float *)buffer;
-    dist_ad = 9.5f;
+    dist_ad = 7.80;
     room_ptr->corner[1].position.x = dist_ab;
     room_ptr->corner[2].position.x = dist_ab;
     room_ptr->corner[2].position.y = dist_ad;
@@ -348,6 +350,15 @@ void loop()
     for (uint16_t i = 0; i < measurement_vector->size(); i++)
     {
         auto devices = measurement_vector->at(i).measurements;
+
+        Serial.print(devices[0].rssi);
+        Serial.print(" ");
+        Serial.print(devices[1].rssi);
+        Serial.print(" ");
+        Serial.print(devices[2].rssi);
+        Serial.print(" ");
+        Serial.print(devices[3].rssi);
+        Serial.println();
 
         positions[i] = estimate_position(measurement_vector->at(i).id, room_ptr, &devices[0], &devices[1], &devices[2], &devices[3]);
 
