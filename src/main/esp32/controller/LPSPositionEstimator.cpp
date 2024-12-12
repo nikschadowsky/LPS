@@ -4,16 +4,16 @@
 #include <HardwareSerial.h>
 
 // reference RSSI at a distance of 1m from an antenna
-const int16_t REFERENCE_RSSI = -50;
+const int16_t REFERENCE_RSSI = -62;
 
 // worst case scenario. has to be dialed in by testing.
-const float ENVIRONMENTAL_PATH_LOSS = 4.0f;
+const float ENVIRONMENTAL_PATH_LOSS = 3.5f;
 
 const float THRESHOLD_ACCURACY = 0.0f;
 
 const uint16_t MAX_ITERATIONS_GRAD_DESCENT = 1000;
 const float EPSILON_GRAD_DESCENT = 1e-6;
-const float LEARNING_RATE_GRAD_DESCENT = 0.01f;
+const float LEARNING_RATE_GRAD_DESCENT = 0.02f;
 
 float boundary_distance(const Point *point, const Antenna *antenna, const float distance)
 {
@@ -68,7 +68,7 @@ float estimate_distance(const LPSDEVICE *device_ptr)
     if (device_ptr)
     {
         float exponent = (REFERENCE_RSSI - device_ptr->rssi) / (ENVIRONMENTAL_PATH_LOSS * 10.0f);
-        return pow10f(exponent);
+        return pow10f(exponent) + 1.8f;
     }
 
     return infinityf();
