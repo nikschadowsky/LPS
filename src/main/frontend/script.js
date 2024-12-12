@@ -1,6 +1,7 @@
 import Heatmap from "./heatmap.js";
 
-const SOCKET_URL = 'ws://localhost:8080/api/ws';
+const host = window.location.host.split(':')[0];
+const SOCKET_URL = `ws://${host}:8080/api/ws`;
 const heatmap = new Heatmap('floorplan', 'heatmapCanvas')
 const canvas = document.getElementById('heatmapCanvas');
 const floorplan = document.getElementById('floorplan');
@@ -129,7 +130,7 @@ function smoothPositionWithMedian(position) {
     const medianY = sortedY[Math.floor(sortedY.length / 2)];
     const medianScale = sortedScale[Math.floor(sortedScale.length / 2)];
 
-    return { id: position.id, x: medianX, y: medianY, scale: medianScale };
+    return {id: position.id, x: medianX, y: medianY, scale: medianScale};
 }
 
 function createPositionLabel(position) {
@@ -171,7 +172,7 @@ function updatePositionLabel(posObj) {
         posObj.element.style.backgroundColor = 'rgba(206,25,25,0.5)';
     }
 
-    posObj.element.innerHTML = posObj.data.id;
+    posObj.element.innerHTML = `<b>${posObj.data.id}</b>`;
     posObj.element.style.position = 'absolute';
     posObj.element.style.left = `${x * img.width}px`;
     posObj.element.style.top = `${y * img.height}px`;
