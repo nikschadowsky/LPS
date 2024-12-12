@@ -1,6 +1,6 @@
 import Heatmap from "./heatmap.js";
 
-const SOCKET_URL = 'ws://localhost:8765';
+const SOCKET_URL = 'ws://localhost:8080/api/ws';
 const heatmap = new Heatmap('floorplan', 'heatmapCanvas')
 const canvas = document.getElementById('heatmapCanvas');
 const floorplan = document.getElementById('floorplan');
@@ -12,6 +12,7 @@ const tabContents = document.querySelectorAll('.tab-content');
 
 const positions = {};
 const sidebarData = [];
+const positionBuffer = {};
 const socket = new WebSocket(SOCKET_URL);
 
 socket.addEventListener('open', onWebSocketOpen);
@@ -28,11 +29,21 @@ function onWebSocketOpen() {
 
 function onWebSocketMessage(event) {
     try {
-        const dto = JSON.parse(event.data);
+        let dto = event.data.replace(/Infinity/g, `\"Infinity\"`);
+        console.log(dto);
+        dto = JSON.parse(dto, (key, value) => {
+            if (value === "Infinity") {
+                return Infinity;
+            }
+            return value;
+        });
         console.log(dto);
         if (dto.positions) {
             dto.positions.forEach(position => {
                 console.log("Position:", position);
+                if (position.x === Infinity || position.y === Infinity) {
+                    return;
+                }
                 const relativePosition = calculateRelativePosition(position, dto.room);
                 console.log("Relative Position:", relativePosition)
                 handlePosition(relativePosition);
@@ -71,12 +82,54 @@ function onTabButtonClick(event) {
 
 function handlePosition(position) {
     if (positions[position.id]) {
-        updatePositionData(position);
+        // const smoothedPosition = smoothPositionWithAverage(position)
+        const smoothedPosition = smoothPositionWithMedian(position)
+        updatePositionData(smoothedPosition);
         Object.values(positions).forEach(updatePositionLabel)
         updatePositionHeatmap(positions[position.id])
     } else {
         createPositionLabel(position);
+        positionBuffer[position.id] = [{...position}];
     }
+}
+
+function smoothPositionWithAverage(position) {
+    positionBuffer[position.id].push({...position});
+    if (positionBuffer[position.id].length > 3) {
+        positionBuffer[position.id].shift();
+    }
+    console.log("Position:", position);
+    console.log("Buffer:", positionBuffer[position.id]);
+    const smoothedPosition = positionBuffer[position.id].reduce((acc, pos) => {
+        acc.x += pos.x;
+        acc.y += pos.y;
+        acc.scale += pos.scale;
+        return acc;
+    }, {x: 0, y: 0, scale: 0});
+    smoothedPosition.x /= positionBuffer[position.id].length;
+    smoothedPosition.y /= positionBuffer[position.id].length;
+    smoothedPosition.scale /= positionBuffer[position.id].length;
+    smoothedPosition.id = position.id;
+    console.log("Smoothed Position:", smoothedPosition);
+    return smoothedPosition;
+}
+
+function smoothPositionWithMedian(position) {
+    positionBuffer[position.id].push({...position});
+    if (positionBuffer[position.id].length > 3) {
+        positionBuffer[position.id].shift();
+    }
+    console.log("Position:", position);
+    console.log("Buffer:", positionBuffer[position.id]);
+    const sortedX = positionBuffer[position.id].map(p => p.x).sort((a, b) => a - b);
+    const sortedY = positionBuffer[position.id].map(p => p.y).sort((a, b) => a - b);
+    const sortedScale = positionBuffer[position.id].map(p => p.scale).sort((a, b) => a - b);
+
+    const medianX = sortedX[Math.floor(sortedX.length / 2)];
+    const medianY = sortedY[Math.floor(sortedY.length / 2)];
+    const medianScale = sortedScale[Math.floor(sortedScale.length / 2)];
+
+    return { id: position.id, x: medianX, y: medianY, scale: medianScale };
 }
 
 function createPositionLabel(position) {
