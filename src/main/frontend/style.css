@@ -128,10 +128,6 @@ h1 {
     z-index: 3;
 }
 
-.position-label:hover {
-    transform: translate(-50%, -50%) scale(1.2);
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-}
 #floorplan-container-heatmap {
     position: relative;
     display: block; /* Ensures it takes up the width and height of the image */
@@ -152,7 +148,7 @@ h1 {
     height: 100%; /* Ensures it overlays the image */
 }
 
-#position-list{
+#position-list {
     .user-info {
         font-family: 'Arial, sans-serif', serif;
         display: flex;
@@ -209,6 +205,7 @@ h1 {
 .instruction-list {
     margin-top: 20px;
 }
+
 .instruction-item {
     margin-bottom: 10px;
     margin-left: 40px;
