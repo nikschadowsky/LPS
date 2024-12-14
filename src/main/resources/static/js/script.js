@@ -191,7 +191,7 @@ function updatePositionLabel(posObj) {
 
 function updatePositionHeatmap(posObj) {
     const {x, y} = posObj.data;
-    const newPoint = {x: x * canvas.width, y: y * canvas.height, value: 0.1};
+    const newPoint = {x: x * canvas.width, y: y * canvas.height, value: 0.05};
     heatmap.addHeatmapPoint(newPoint);
 }
 

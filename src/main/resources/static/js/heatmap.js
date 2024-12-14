@@ -57,7 +57,7 @@ export class Heatmap {
 
     drawPoint(x, y, intensity) {
         try {
-            const radius = 100;
+            const radius = 150;
             const gradient = this.context.createRadialGradient(x, y, 0, x, y, radius);
             gradient.addColorStop(0, `rgba(255, 0, 0, ${intensity})`);
             gradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
