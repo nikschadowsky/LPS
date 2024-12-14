@@ -58,6 +58,12 @@ std::string get_ip_as_string(uint32_t addr)
     return std::to_string(octet1) + "." + std::to_string(octet2) + "." + std::to_string(octet3) + "." + std::to_string(octet4);
 }
 
+float BE_bytes_to_LE_float(uint8_t buffer[4]) {
+    uint32_t result = 0x0 | buffer[3] | (buffer[2] << 8) | (buffer[1] << 16) | (buffer[0] << 24);
+
+    return *(float *) &result;
+}
+
 void setupLPSRoom()
 {
     Serial.println("Waiting for all antennas to connect...");
@@ -121,8 +127,8 @@ void setupLPSRoom()
     Serial.readBytes(buffer, 4);
 
     // expecting float
-    float dist_ab = *(float *)buffer;
-    dist_ab = 9.5f;
+    float dist_ab = BE_bytes_to_LE_float(buffer);
+    
     handle_http_toggle_config_mode(room_ptr->corner[1].ip, 1);
     handle_http_toggle_config_mode(room_ptr->corner[3].ip, 0);
 
@@ -132,8 +138,8 @@ void setupLPSRoom()
 
     Serial.readBytes(buffer, 4);
 
-    float dist_ad = *(float *)buffer;
-    dist_ad = 7.80;
+    float dist_ad = BE_bytes_to_LE_float(buffer);
+
     room_ptr->corner[1].position.x = dist_ab;
     room_ptr->corner[2].position.x = dist_ab;
     room_ptr->corner[2].position.y = dist_ad;
@@ -249,7 +255,6 @@ void handle_tcp_socket(const TCPSocketData *antenna_data[TOTAL_NUMBER_OF_ANTENNA
                 Serial.println("Request timeout on antenna: " + i);
             }
         }
-        Serial.println("Requests ");
         clients[i].stop();
     }
 }
@@ -293,6 +298,7 @@ Tuple *get_tuple_with_id(uint16_t id)
 void setup()
 {
     Serial.begin(115200);
+    
     setupWiFi();
     setupLPSRoom();
     Serial.println("Setup complete!");
@@ -343,16 +349,6 @@ void loop()
                 measurement_vector->push_back(new_tuple);
             }
         }
-    }
-
-    for(auto tupl : *measurement_vector) {
-        Serial.print("Measurement on ");
-        Serial.print(tupl.id);
-        Serial.print(" :");
-        for(int i = 0; i < 4; i++) {
-            Serial.print(" ");
-            Serial.print(tupl.measurements[i].rssi);
-        }Serial.println();
     }
 
     LPSPosition *positions = new LPSPosition[measurement_vector->size()];
