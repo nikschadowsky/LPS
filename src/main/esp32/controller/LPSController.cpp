@@ -249,7 +249,7 @@ void handle_tcp_socket(const TCPSocketData *antenna_data[TOTAL_NUMBER_OF_ANTENNA
                 Serial.println("Request timeout on antenna: " + i);
             }
         }
-
+        Serial.println("Requests ");
         clients[i].stop();
     }
 }
@@ -272,7 +272,7 @@ const std::map<uint16_t, std::array<LPSDEVICE, 4> *> *mapped_measurements;
 struct Tuple
 {
     const uint16_t id;
-    LPSDEVICE *measurements;
+    LPSDEVICE* measurements;
 };
 
 std::vector<Tuple> *measurement_vector;
@@ -295,12 +295,12 @@ void setup()
     Serial.begin(115200);
     setupWiFi();
     setupLPSRoom();
+    Serial.println("Setup complete!");
 
     for (uint8_t i = 0; i < TOTAL_NUMBER_OF_ANTENNAS; i++)
     {
         tcp_socket_data_ptr[i] = tcp_socket_data_create(&room_ptr->corner[i]);
     }
-
     measurement_vector = new std::vector<Tuple>;
 }
 
@@ -335,7 +335,7 @@ void loop()
             }
             else
             {
-                LPSDEVICE measurement_data[4];
+                LPSDEVICE *measurement_data = new LPSDEVICE[4];
                 measurement_data[i] = device;
 
                 Tuple new_tuple = Tuple{id, measurement_data};
@@ -345,26 +345,24 @@ void loop()
         }
     }
 
+    for(auto tupl : *measurement_vector) {
+        Serial.print("Measurement on ");
+        Serial.print(tupl.id);
+        Serial.print(" :");
+        for(int i = 0; i < 4; i++) {
+            Serial.print(" ");
+            Serial.print(tupl.measurements[i].rssi);
+        }Serial.println();
+    }
+
     LPSPosition *positions = new LPSPosition[measurement_vector->size()];
 
     for (uint16_t i = 0; i < measurement_vector->size(); i++)
     {
         auto devices = measurement_vector->at(i).measurements;
-
-        Serial.print(devices[0].rssi);
-        Serial.print(" ");
-        Serial.print(devices[1].rssi);
-        Serial.print(" ");
-        Serial.print(devices[2].rssi);
-        Serial.print(" ");
-        Serial.print(devices[3].rssi);
-        Serial.println();
-
         positions[i] = estimate_position(measurement_vector->at(i).id, room_ptr, &devices[0], &devices[1], &devices[2], &devices[3]);
 
-        Serial.print(positions[i].position.x);
-        Serial.print(" ");
-        Serial.println(positions[i].position.y);
+        delete[] measurement_vector->at(i).measurements;
     }
 
     Serial.write("ESP_POS_DATA_START");
@@ -376,6 +374,7 @@ void loop()
 
     Serial.write(buffer, buffer_size);
     Serial.write("POS_DATA_END");
+
 
     measurement_vector->clear();
     delete[] positions;
