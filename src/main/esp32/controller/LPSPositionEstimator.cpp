@@ -4,16 +4,16 @@
 #include <HardwareSerial.h>
 
 // reference RSSI at a distance of 1m from an antenna
-const int16_t REFERENCE_RSSI = -62;
+const int16_t REFERENCE_RSSI = -65;
 
 // worst case scenario. has to be dialed in by testing.
-const float ENVIRONMENTAL_PATH_LOSS = 3.5f;
+const float ENVIRONMENTAL_PATH_LOSS = 4.0f;
 
 const float THRESHOLD_ACCURACY = 0.0f;
 
 const uint16_t MAX_ITERATIONS_GRAD_DESCENT = 1000;
 const float EPSILON_GRAD_DESCENT = 1e-6;
-const float LEARNING_RATE_GRAD_DESCENT = 0.02f;
+const float LEARNING_RATE_GRAD_DESCENT = 0.01f;
 
 float boundary_distance(const Point *point, const Antenna *antenna, const float distance)
 {
@@ -68,7 +68,7 @@ float estimate_distance(const LPSDEVICE *device_ptr)
     if (device_ptr)
     {
         float exponent = (REFERENCE_RSSI - device_ptr->rssi) / (ENVIRONMENTAL_PATH_LOSS * 10.0f);
-        return pow10f(exponent) + 1.8f;
+        return pow10f(exponent) + 1;
     }
 
     return infinityf();
@@ -182,6 +182,8 @@ LPSPosition estimate_position(
 
         Point midpoint = calculate_midpoint(&midpoint_02, &midpoint_13);
         float uncertainty = fmaxf(fmaxf(fmaxf(positions[0].uncertainty, positions[1].uncertainty), positions[2].uncertainty), positions[3].uncertainty);
+        Serial.print("Uncertainty: ");
+        Serial.println(uncertainty);
 
         return LPSPosition{id, midpoint, uncertainty};
     }
