@@ -130,8 +130,9 @@ h1 {
 }
 
 #floorplan-container-heatmap {
-    position: relative;
+    position: absolute;
     display: block;
+    overflow: hidden;
 }
 
 #heatmapCanvas {
