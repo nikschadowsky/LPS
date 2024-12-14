@@ -13,7 +13,6 @@ export class Heatmap {
             this.adjustCanvasSize();
         });
 
-        // If the image is already loaded (cached), trigger the onload event
         if (this.image.complete) {
             this.adjustCanvasSize();
         }
@@ -42,7 +41,7 @@ export class Heatmap {
             const width = this.canvas.width;
             const height = this.canvas.height;
 
-            ctx.clearRect(0, 0, width, height); // Clear the canvas
+            ctx.clearRect(0, 0, width, height);
 
             this.heatmapData.forEach(point => {
                 if (point.x >= 0 && point.y >= 0 && point.x <= width && point.y <= height) {
@@ -58,7 +57,7 @@ export class Heatmap {
 
     drawPoint(x, y, intensity) {
         try {
-            const radius = 50;
+            const radius = 100;
             const gradient = this.context.createRadialGradient(x, y, 0, x, y, radius);
             gradient.addColorStop(0, `rgba(255, 0, 0, ${intensity})`);
             gradient.addColorStop(1, 'rgba(255, 0, 0, 0)');

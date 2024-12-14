@@ -1,5 +1,6 @@
 import Heatmap from "./heatmap.js";
 
+//const host = window.location.hostname;
 const host = window.location.hostname;
 const SOCKET_URL = `ws://${host}:8080/api/ws`;
 const heatmap = new Heatmap('floorplan', 'heatmapCanvas')
@@ -61,7 +62,7 @@ function calculateRelativePosition(position, room) {
     const {id, x, y, uncertainty} = position;
     const {distanceAB: width, distanceAD: height} = room;
     return {
-        id: id, x: x / width, y: y / height, scale: (img.width / width) * 2 * uncertainty
+        id: id, x: x / width, y: y / height, scale: (img.width / width) * uncertainty
     }
 }
 
@@ -84,7 +85,7 @@ function onTabButtonClick(event) {
 function handlePosition(position) {
     if (positions[position.id]) {
         const smoothedPosition = smoothPositionWithAverage(position)
-        // const smoothedPosition = smoothPositionWithMedian(position)
+        //const smoothedPosition = smoothPositionWithMedian(position)
         updatePositionData(smoothedPosition);
         Object.values(positions).forEach(updatePositionLabel)
         updatePositionHeatmap(positions[position.id])
@@ -109,8 +110,8 @@ function smoothPositionWithAverage(position) {
     }, {x: 0, y: 0, scale: 0});
     smoothedPosition.x /= positionBuffer[position.id].length;
     smoothedPosition.y /= positionBuffer[position.id].length;
-    // smoothedPosition.scale /= positionBuffer[position.id].length;
-    smoothedPosition.scale = Math.min(...positionBuffer[position.id].map(p => p.scale));
+    const sortedScale = positionBuffer[position.id].map(p => p.scale).sort((a, b) => a - b);
+    smoothedPosition.scale = sortedScale[Math.floor(sortedScale.length / 2)];
     smoothedPosition.id = position.id;
     console.log("Smoothed Position:", smoothedPosition);
     return smoothedPosition;
@@ -130,9 +131,8 @@ function smoothPositionWithMedian(position) {
     const medianX = sortedX[Math.floor(sortedX.length / 2)];
     const medianY = sortedY[Math.floor(sortedY.length / 2)];
     const medianScale = sortedScale[Math.floor(sortedScale.length / 2)];
-    const minScale = sortedScale[0];
     // TODO decide between min or median scale
-    return {id: position.id, x: medianX, y: medianY, scale: minScale};
+    return {id: position.id, x: medianX, y: medianY, scale: medianScale};
 }
 
 function createPositionLabel(position) {
@@ -184,7 +184,7 @@ function updatePositionLabel(posObj) {
 
 function updatePositionHeatmap(posObj) {
     const {x, y} = posObj.data;
-    const newPoint = {x: x * canvas.width, y: y * canvas.height, value: 0.3};
+    const newPoint = {x: x * canvas.width, y: y * canvas.height, value: 0.1};
     heatmap.addHeatmapPoint(newPoint);
 }
 
