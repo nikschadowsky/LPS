@@ -17,6 +17,13 @@ const sidebarData = [];
 const positionBuffer = {};
 const socket = new WebSocket(SOCKET_URL);
 
+document.addEventListener("DOMContentLoaded", () => {
+    tabButtons.forEach(button => button.classList.remove('active'));
+    tabContents.forEach(content => content.classList.remove('active'));
+
+    tabButtons[1].classList.add('active');
+    document.getElementById(`${tabButtons[1].dataset.tab}-container`).classList.add('active');
+})
 socket.addEventListener('open', onWebSocketOpen);
 socket.addEventListener('message', onWebSocketMessage);
 socket.addEventListener('close', onWebSocketClose);
