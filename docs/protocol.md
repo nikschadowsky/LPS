@@ -52,4 +52,6 @@ This action signals to the external system that the LPS controller requires an i
 
 Both `ESP_CONFIG_DISTX` actions do not share the same action since they need to be distinguishable for the LPS controller. 
 
+The baudrate of this communication is defined to be 115200.
+
 **This protocol does not guarantee that there wont be additional fields added in future versions and revisions.**
