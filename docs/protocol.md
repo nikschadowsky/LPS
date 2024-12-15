@@ -30,3 +30,20 @@ This endpoint serves to allow for toggling the configuration mode of an antenna.
 **Any other HTTP request on any other endpoint will result in an HTTP 403 response.**
 
 **This protocol does not guarantee that there wont be additional fields added in future versions and revisions.**
+
+## LPS Communication with other Systems
+The LPS allows communication between external systems and the LPS. The communication is always LPS controlled. That means a so called LPS action gets initiated by the controller and has to be handled accordingly. The LPS defines five actions in its current revision:
+- `ESP_CONFIG_START`
+This action signals to the external system that the LPS controller initiated a (re)configuration. This action serves just as information to the external system and does not need further handling.
+- `ESP_CONFIG_REQ`
+This action signals to the external system that the LPS controller requires an interation. It requests a ASCII letter A-D that specifies which corner of the room a certain antenna is located at. The antenna will light up through its integrated LED. The response requires a single byte to be transmitted. This action does only occur in a (re)configuration.
+- `ESP_POS_DATA_START`
+This action signals to the external system that the LPS controller is beginning to send serialized position data. This data is termined by an ending sequence `POS_DATA_END`. This action does not need further handling.
+- `ESP_CONFIG_DIST1`
+This action signals to the external system that the LPS controller requires an interation. It requests a floating point value in big endian notation. This value corresponds with the distance between the two lit up LEDs. This response requires four bytes to be transmitted. This action does only occur in a (re)configuration
+- `ESP_CONFIG_DIST2`
+This action signals to the external system that the LPS controller requires an interation. It requests a floating point value in big endian notation. This value corresponds with the distance between the two lit up LEDs. This response requires four bytes to be transmitted. This action does only occur in a (re)configuration.
+
+Both `ESP_CONFIG_DISTX` actions do not share the same action since they need to be distinguishable for the LPS controller. 
+
+**This protocol does not guarantee that there wont be additional fields added in future versions and revisions.**
