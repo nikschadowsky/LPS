@@ -15,7 +15,7 @@ The LPS specifies a required format for communication between an LPS antenna and
 Every LPS controller creates a private wifi network which all antennae are configured to connect to on startup. 
 Every LPS antenna provides a webserver on port 80.
 This port is used to conduct all communication with an antenna. 
-Each antenna serves two endpoints:
+Each antenna serves four endpoints:
 - `/api/scan`:
 ... an HTTP GET request to this endpoint starts the scan of the surrounding LPS BLE devices and returns a status 200 octet stream containing a serialized version of each device. 
 The serialized data contains at least 3 bytes and always ends on 3 NULL bytes `0x000000`.
@@ -24,8 +24,14 @@ Each LPS device is serialized according to the [Serialization standard](serializ
 2. `0x000000`
 An HTTP GET request to this endpoint will fail with a status 403 if and only if this antenna is in configuration mode
 
+- `/api/config/enable`:
+This endpoint serves to allow for enabling the configuration mode of an antenna. Under normal operation and on startup the antenna is in OPERATION mode. This enables scanning of nearby LPS devices. Requesting an HTTP POST on this endpoint enables the configuration mode and returns a status 202. An indication LED can be installed on GPIO pin 23 and will be lit if the device is in configuration mode.
+
+- `/api/config/disable`:
+This endpoint serves to allow for disabling the configuration mode of an antenna. Requesting an HTTP POST on this endpoint disables the configuration mode and returns a status 202. An indication LED can be installed on GPIO pin 23 and will be lit if the device is in configuration mode.
+
 - `/api/config`:
-This endpoint serves to allow for toggling the configuration mode of an antenna. Under normal operation and on startup the antenna is in OPERATION mode. This enables scanning of nearby LPS devices. Requesting an HTTP POST on this endpoint toggles the configuration mode and returns a status 202. An indication LED can be installed on GPIO pin 23 and will be lit if the device is in configuration mode. An HTTP GET request on this endpoint will return a basic HTML representation of the current state of the configuration mode. This will return a status 200. 
+An HTTP GET request on this endpoint will return a basic HTML representation of the current state of the configuration mode. This will return a status 200. 
 
 **Any other HTTP request on any other endpoint will result in an HTTP 403 response.**
 
