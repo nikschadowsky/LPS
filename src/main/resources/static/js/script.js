@@ -1,6 +1,5 @@
 import Heatmap from "./heatmap.js";
 
-//const host = window.location.hostname;
 const host = window.location.hostname;
 const SOCKET_URL = `ws://${host}:8080/api/ws`;
 const heatmap = new Heatmap('floorplan', 'heatmapCanvas')
@@ -23,6 +22,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     tabButtons[1].classList.add('active');
     document.getElementById(`${tabButtons[1].dataset.tab}-container`).classList.add('active');
+    document.getElementById('hostname').innerText = `IP: ${host}:8080`;
 })
 socket.addEventListener('open', onWebSocketOpen);
 socket.addEventListener('message', onWebSocketMessage);
